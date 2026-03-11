@@ -1,3 +1,7 @@
+/*
+ * Using simple bare-metal addresses to blink LED1 (PA5)
+ */
+
 #define PERIPH_BASE 			(0x40000000UL)
 #define PERIPH_AHB1_OFFSET		(0x00020000UL)
 #define AHB1_BASE				(PERIPH_BASE + PERIPH_AHB1_OFFSET)
