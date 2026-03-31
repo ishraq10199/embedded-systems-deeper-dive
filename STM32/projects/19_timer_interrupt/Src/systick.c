@@ -1,9 +1,13 @@
 #include "stm32f4xx.h"
 
+#include "systick.h"
+
 #define SYSTICK_LOAD_VAL				(16000)
+#define ONE_SECOND_LOAD_VAL				(16000000)
 #define CTRL_ENABLE						(1U << 0)
 #define CTRL_CLKSRC						(1U << 2)
 #define CTRL_COUNTFLAG					(1U << 16)
+#define SYSTICK_TICKINT					(1U << 1)
 
 /*
  * Mindset:
@@ -41,4 +45,22 @@ void systickDelayMs(int delay) {
 
 	/* Disable systick and clear the register */
 	SysTick->CTRL = 0;
+}
+
+
+void systick_1hz_interrupt(void) {
+	/** Configure the timer **/
+	/* Reload with number of clocks in 1 second */
+	SysTick->LOAD = ONE_SECOND_LOAD_VAL - 1;
+
+	/* Clear the current value in the timer register */
+	SysTick->VAL = 0;
+
+	/* Enable systick and select the internal clock source */
+	SysTick->CTRL = (CTRL_ENABLE | CTRL_CLKSRC);
+
+	/* Enable systick interrupt (exception) */
+	SysTick->CTRL |= SYSTICK_TICKINT;
+
+	/* NVIC is not involved here, as systick is a core part of the processor */
 }
