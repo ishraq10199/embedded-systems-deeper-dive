@@ -35,4 +35,21 @@ gdb ./path/to/the/debug/elf/file/example-blink-led.elf
 
 ```
 
+Example set commands in GDB to toggle `PC9` (`LED2`):
+
+```
+# (only once) Enable clock access to GPIOC in RCC_AHB1ENR
+set *((uint32_t *)0x40023830) |= 0x00000005
+
+# (only once) Set PC9 to output mode in GPIOC_MODER (bit 19 to 0 and bit 18 to 1)
+set *((uint32_t *)0x40020800) &= ~0x00080000
+set *((uint32_t *)0x40020800) |= 0x00040000
+
+# (as many times as we want) Toggle bit 9 of GPIOC_ODR
+set *((uint32_t *)0x40020814) ^= 0x00000200
+```
+
+To toggle the LED2, we can just run the last `set` command above. We don't need to run the first 3 `set` commands, as they are just for initializing `PC9`.
+
+
 
