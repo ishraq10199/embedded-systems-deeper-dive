@@ -8,6 +8,14 @@ As a starter, I will be using an STM32 board, or more precisely, [this one](http
 
 The documentation and datasheets will be included under the `docs` folder.
 
+### Baremetal
+
+This folder contains projects done without using the hardware abstraction layer (HAL). I wanted to learn how the baremetal code works by manipulating registers and values in memory addresses directly.
+
+The resulting code may not be as versatile as one would find in the HAL libraries. For example, the ADXL345 library I wrote can access the data registers (raw IMU values) via SPI, but I did not write any function that can access specific data registers via SPI, like I did when writing the functions responsible for I2C access in the same library.
+
+All in all, it turned out to be quite an educational and an enjoyable experience overall to sift through the datasheets and operate on baremetal hardware.
+
 ## Notes
 
 ### Using OpenOCD to debug
