@@ -8,3 +8,31 @@ As a starter, I will be using an STM32 board, or more precisely, [this one](http
 
 The documentation and datasheets will be included under the `docs` folder.
 
+## Notes
+
+### Using OpenOCD to debug
+
+On a Fedora system which I used for this project, here are the steps I took for debugging with OpenOCD:
+
+```
+# Install OpenOCD
+sudo dnf install openocd
+
+# Ensure gdb is installed
+which gdb
+
+# Start the openocd instance
+openocd -f /usr/share/openocd/scripts/interface/stlink-v2.cfg -f /usr/share/openocd/scripts/target/stm32f4x.cfg
+
+# The above will open some ports (e.g. 3333)
+# Start a gdb instance
+gdb ./path/to/the/debug/elf/file/example-blink-led.elf
+
+# Once started, we need to tell gdb to debug a remote target
+(gdb) target extended-remote localhost:3333
+
+# We can then debug the program using gdb :)
+
+```
+
+
