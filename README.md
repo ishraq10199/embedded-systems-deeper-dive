@@ -16,9 +16,9 @@ The resulting code may not be as versatile as one would find in the HAL librarie
 
 All in all, it turned out to be quite an educational and an enjoyable experience overall to sift through the datasheets and operate on baremetal hardware.
 
-## Notes
+### Notes
 
-### Using OpenOCD to debug
+#### Using OpenOCD to debug
 
 On a Fedora system which I used for this project, here are the steps I took for debugging with OpenOCD:
 
