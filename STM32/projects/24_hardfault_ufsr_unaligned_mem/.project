@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>23_usage_fault</name>
+	<name>24_hardfault_ufsr_unaligned_mem</name>
 	<comment></comment>
 	<projects>
 	</projects>
