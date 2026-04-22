@@ -360,9 +360,11 @@ void StartPrintTask(void *argument) {
 			printf("%d\r\n", isr_counter);
 
 			/* This is NOT a mutex, as this prevents interrupts */
-			UBaseType_t uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
+
+			/* This is not done inside an ISR */
+			taskENTER_CRITICAL();
 			isr_counter--;
-			taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
+			taskEXIT_CRITICAL();
 		}
 
 		/* Wait while ISR increments counter for a few times */
@@ -400,6 +402,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	/* USER CODE BEGIN Callback 0 */
 	if (htim->Instance == TIM3) {
 		/* This is NOT a mutex, as this prevents interrupts */
+		/* Note that the functions for entering and exiting */
+		/* the critical regions are different, as its from inside an ISR*/
 		UBaseType_t uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
 		isr_counter++;
 		taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
