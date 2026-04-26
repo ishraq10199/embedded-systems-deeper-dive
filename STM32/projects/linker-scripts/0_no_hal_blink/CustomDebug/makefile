@@ -1,8 +1,3 @@
-################################################################################
-# Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (13.3.rel1)
-################################################################################
-
 -include ../makefile.init
 
 RM := rm -rf
@@ -59,11 +54,11 @@ all: main-build
 main-build: 0_no_hal_blink.elf secondary-outputs
 
 # Tool invocations
-0_no_hal_blink.elf 0_no_hal_blink.map: $(OBJS) $(USER_OBJS) /home/i_ssh_rq/dev/learning/embed/STM32/projects/linker-scripts/0_no_hal_blink/CustomLinkerScript_ROM.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+0_no_hal_blink.elf 0_no_hal_blink.map: $(OBJS) $(USER_OBJS) /home/i_ssh_rq/dev/learning/embed/STM32/projects/linker-scripts/0_no_hal_blink/CustomLinkerScript.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	arm-none-eabi-gcc -o "0_no_hal_blink.elf" \
 		@"objects.list" $(USER_OBJS) $(LIBS) \
 		-mcpu=cortex-m4 \
-		-T"/home/i_ssh_rq/dev/learning/embed/STM32/projects/linker-scripts/0_no_hal_blink/CustomLinkerScript_ROM.ld" \
+		-T"/home/i_ssh_rq/dev/learning/embed/STM32/projects/linker-scripts/0_no_hal_blink/CustomLinkerScript.ld" \
 		--specs=nosys.specs \
 		-Wl,-Map="0_no_hal_blink.map" \
 		-Wl,--gc-sections -static \

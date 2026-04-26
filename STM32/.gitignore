@@ -17,8 +17,12 @@
 **/*.lst
 **/*.su
 **/*.d
+**/*.cyclo
 **/*.o
 **/*.a
+
+# If there are any .asm files produced manually for debugging
+**/*.asm
 
 # Linker output
 **/*.ld.bak

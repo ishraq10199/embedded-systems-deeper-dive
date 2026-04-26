@@ -1,3 +1,5 @@
+ENTRY(Reset_Handler)
+
 /* Memory definitions */
 MEMORY
 {
@@ -63,7 +65,7 @@ SECTIONS
 		
 		/* Do the alignment again */
 		. = ALIGN(8);
-	}
+	} > ram
 
 	/* Flash to SRAM data copy is done here */
 	.data	:
@@ -78,10 +80,10 @@ SECTIONS
 		_edata = .;
 
 	}	>	ram	AT > rom
-	/* For the above, syntax:
-	* > (DEST_VMA) AT > (ORIGIN_LMA)
-	* VMA => Virtual memory address
-	* LMA => Load memory address
-	*/
+
+	/* For the above, syntax: */
+	/* > (DEST_VMA) AT > (ORIGIN_LMA) */
+	/* VMA => Virtual memory address */
+	/* LMA => Load memory address */
 
 }

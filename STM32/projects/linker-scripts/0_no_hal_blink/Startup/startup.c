@@ -2,7 +2,7 @@
 
 /* SRAM => 512Kbytes, starting at 0x2000_0000 */
 #define SRAM_START              (0x20000000U)
-#define SRAM_SIZE               (512U * 1024U)
+#define SRAM_SIZE               (128U * 1024U)
 #define SRAM_END                (SRAM_START + SRAM_SIZE)
 
 /* Stack Pointer Init address is at the start of the vector table */
@@ -267,10 +267,10 @@ void Reset_Handler(void) {
   */
  uint32_t *init_values = &_etext;
  uint32_t *data_dest = &_sdata;
- uint32_t data_section_size = (uint32_t)&_edata - (uint32_t)&_sdata;
+ uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
 
  /* Copy init values from flash memory to SRAM */
- for (int i = 0; i < data_section_size; i++) {
+ for (uint32_t i = 0; i < data_section_size; i++) {
   data_dest[i] = init_values[i];
  }
 
