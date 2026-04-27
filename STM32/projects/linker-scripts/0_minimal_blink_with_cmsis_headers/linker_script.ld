@@ -26,7 +26,7 @@ SECTIONS
 			/* Put all the .rodata* sections here */
 			*(.rodata*)
 
-			/* End of .text - For external use */
+			/* End of .text and .rodata - Also the start of .data !  - For external use */
 			_etext = .;
 
 	}	> rom

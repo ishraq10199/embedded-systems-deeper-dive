@@ -157,7 +157,7 @@ void (* const isr_vector[ISR_VECTOR_SIZE_WORDS])(void) __attribute__((section(".
  /* Stack pointer init */
  (void (*)(void))SP_INIT_ADDR,
 
- /* Cortex M4 System Exceptions */
+ /* Cortex M4 System Exceptions (0 => reserved) */
  Reset_Handler,
  NMI_Handler,
  HardFault_Handler,
@@ -171,7 +171,7 @@ void (* const isr_vector[ISR_VECTOR_SIZE_WORDS])(void) __attribute__((section(".
  PendSV_Handler,
  SysTick_Handler,
 
- /* STM32F411xE Interrupt Handlers */
+ /* STM32F411xE Interrupt Handlers (0 => reserved) */
  WWDG_IRQHandler,
  PVD_IRQHandler,
  TAMP_STAMP_IRQHandler,
@@ -259,12 +259,15 @@ extern uint32_t _etext, _sdata, _edata, _sbss, _ebss;
 void main(void);
 
 void Reset_Handler(void) {
- /* Quirk:
+ /**
+  * Quirk:
+  *
   * _etext (and any similar) value is garbage, so we don't use it
   * Instead, we use `&_etext` to get the address we need 
   * The linker uses _etext's address as the relevant value
   * Details: https://sourceware.org/binutils/docs/ld/Source-Code-Reference.html
   */
+
  uint32_t *init_values = &_etext;
  uint32_t *data_dest = &_sdata;
  uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
