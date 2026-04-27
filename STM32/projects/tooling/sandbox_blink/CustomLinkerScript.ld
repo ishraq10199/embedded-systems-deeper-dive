@@ -31,6 +31,25 @@ SECTIONS
 
 	}	> rom
 
+	/* Flash to SRAM data copy is done here */
+	.data	:
+	{
+		/* Start of .data - For external use */
+		_sdata = .;
+
+		/* Put all the .data* sections here */
+		*(.data*)
+
+		/* End of .data - For external use */
+		_edata = .;
+
+	}	>	ram	AT > rom
+
+	/* For the above, syntax: */
+	/* > (DEST_VMA) AT > (ORIGIN_LMA) */
+	/* VMA => Virtual memory address */
+	/* LMA => Load memory address */
+
 	/* NOLOAD prevents a large block of zeros to be preserved in flash - would be wasteful */
 	.bss	(NOLOAD)	:
 	{
@@ -66,24 +85,5 @@ SECTIONS
 		/* Do the alignment again */
 		. = ALIGN(8);
 	} > ram
-
-	/* Flash to SRAM data copy is done here */
-	.data	:
-	{
-		/* Start of .data - For external use */
-		_sdata = .;
-
-		/* Put all the .data* sections here */
-		*(.data*)
-
-		/* End of .data - For external use */
-		_edata = .;
-
-	}	>	ram	AT > rom
-
-	/* For the above, syntax: */
-	/* > (DEST_VMA) AT > (ORIGIN_LMA) */
-	/* VMA => Virtual memory address */
-	/* LMA => Load memory address */
 
 }
