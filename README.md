@@ -1,6 +1,6 @@
-# Learning Embedded Systems
+# Embedded Systems - Deeper Dive
 
-This repo will be used to track my learning progress with embedded systems. Although I have some experience with it, I never quite formalized my learning. Hopefully I can cover some stuff that I was lacking, and track my journey throughout.
+This repo will be used to track my deep-dive learning progress with embedded systems. Although I have some experience with it, I never quite formalized my learning through first principles. Hopefully I can cover stuff I was always interested in, like linkers, bootloaders, baremetal code, RTOS, etc. and track my journey throughout.
 
 ## STM32
 
