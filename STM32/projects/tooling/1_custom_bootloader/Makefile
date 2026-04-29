@@ -1,12 +1,6 @@
 # Default build type is debug
 BUILD_TYPE ?= debug
 
-##########
-
-include boot/boot.mk
-
-##########
-
 # Target file name
 TARGET = $(notdir $(CURDIR))
 
@@ -25,6 +19,7 @@ MCU = $(CPU) -mthumb $(FPU) $(FLOAT_ABI)
 # Toolchain
 CC = arm-none-eabi-gcc
 LD = arm-none-eabi-gcc
+OCPY = arm-none-eabi-objcopy
 
 LINKER_SCRIPT = ./linker_script.ld
 
@@ -38,31 +33,45 @@ else
 endif
 
 LDFLAGS =	$(MCU) -T$(LINKER_SCRIPT) -nostdlib \
-					-L$(CURDIR)
+					-L$(CURDIR) \
 					-Wl,--gc-sections \
 					-Wl,-Map=$(TARGET).map
 
 INCLUDES =	-I./inc \
+						-I$(BOOT_DIR)/inc \
+						-I$(SHARED_DIR)/inc \
 						-I../chip_headers/CMSIS/Include \
 						-I../chip_headers/CMSIS/Device/ST/STM32F4xx/Include
 
 DEFS = -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE
-# Object files
+
 OBJS =	obj/startup.o \
 				obj/main.o \
 				obj/syscalls.o \
-				obj/sysmem.o \
+				obj/sysmem.o
 
-all: $(TARGET).elf
+# 0xFF is the reset value of flash, so we pad it with this byte
+# 0x4000 is the space we reserved for the bootrom/bootloader
+# We pad the rest of the space, upto where the approm starts
+OCPYFLAGS = --gap-fill=0xFF \
+						--pad-to=0x08004000
 
-# Compile rule
-# $@ 	=> `file.o` (the target of the rule)
-# $<	=> `file.c` (the first pre-requisite of the rule, only 1 here)
-obj/%.o:	src/%.c
-		$(CC) $(CFLAGS) $(DEFS) $(INCLUDES) -c -o $@ $<
+all: $(TARGET).bin
 
-$(TARGET).elf:	$(OBJS)
-		$(LD) $(LDFLAGS) -o $@ $(OBJS)
-						
+##########
+
+include boot/boot.mk
+include app/app.mk
+
+##########
+
+TARGET_DEPS = $(BOOT_DIR)/$(BOOT_TARGET).bin $(APP_DIR)/$(APP_TARGET).bin
+
+$(TARGET).bin:	$(TARGET_DEPS)
+
+
 clean:
-	rm -f obj/*.o $(TARGET).elf $(TARGET).map
+	rm -f obj/*.o $(TARGET).bin $(TARGET).map
+	rm -f $(SHARED_OBJ_DIR)/*.o
+	rm -f $(BOOT_OBJ_DIR)/*.o $(BOOT_DIR)/$(BOOT_TARGET).bin  $(BOOT_DIR)/$(BOOT_TARGET).elf $(BOOT_DIR)/$(BOOT_TARGET).map
+	rm -f $(APP_OBJ_DIR)/*.o $(APP_DIR)/$(APP_TARGET).bin  $(APP_DIR)/$(APP_TARGET).elf $(APP_DIR)/$(APP_TARGET).map

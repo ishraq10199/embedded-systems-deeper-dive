@@ -8,9 +8,12 @@
 __attribute__((naked)) static void start_app(uint32_t pc, uint32_t sp) {
     __asm("             \n\
           msr msp, r1   \n\
-          bx r0         \n\ 
+          bx r0         \n\
     ");
 }
+
+/* This would go into .data's initializer varaibles, but if we exclude this from the binary, how will it work? */
+volatile uint32_t myvar = 0x12345678;
 
 int main(void) {
     /* Get the pointer to where the app is in ROM */

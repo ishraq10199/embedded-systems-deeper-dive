@@ -3,12 +3,8 @@ ENTRY(Reset_Handler)
 /* Memory definitions */
 MEMORY
 {
-	/* bootrom - Starts at the beginning of FLASH, size is 240 kB */
-	bootrom			(rx)	:	ORIGIN = 0x00000000, LENGTH = 0x00004000
-	/* approm - Starts immediately after `bootrom`, size is 240 kB */
-	approm			(rx)	:	ORIGIN = 0x00004000, LENGTH = 0x0003C000 
-	/* ram - Starts at the beginning of SRAM`, size is 32 kB*/
-	ram					(rwx)	:	ORIGIN = 0x20000000, LENGTH = 0x00008000
+	rom			(rx)	:	ORIGIN = 0x08000000, LENGTH = 512K
+	ram			(rwx)	:	ORIGIN = 0x20000000, LENGTH = 128K
 }
 
 STACK_SIZE = 0x2000; /* 8k Bytes */
