@@ -12,7 +12,7 @@ APP_LINKER_SCRIPT := $(APP_DIR)/app.ld
 
 APP_LDFLAGS := $(MCU) -T$(APP_LINKER_SCRIPT) -nostdlib \
 								-Wl,--gc-sections \
-								-Wl,-Map=$(APP_TARGET).map
+								-Wl,-Map=$(APP_DIR)/$(APP_TARGET).map
 
 $(APP_OBJ_DIR)/%.o:	$(APP_DIR)/src/%.c
 		$(info $(BLUE)[INFO]$(RESET) Building object: $@)

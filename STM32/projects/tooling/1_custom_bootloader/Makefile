@@ -38,11 +38,6 @@ else
     CFLAGS += -Os
 endif
 
-LDFLAGS =	$(MCU) -T$(LINKER_SCRIPT) -nostdlib \
-					-L$(CURDIR) \
-					-Wl,--gc-sections \
-					-Wl,-Map=$(TARGET).map
-
 INCLUDES =	-I./inc \
 						-I$(BOOT_DIR)/inc \
 						-I$(SHARED_DIR)/inc \

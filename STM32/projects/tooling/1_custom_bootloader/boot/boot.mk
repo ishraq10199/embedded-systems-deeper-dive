@@ -13,7 +13,7 @@ BOOT_LINKER_SCRIPT := $(BOOT_DIR)/boot.ld
 
 BOOT_LDFLAGS := $(MCU) -T$(BOOT_LINKER_SCRIPT) -nostdlib \
 								-Wl,--gc-sections \
-								-Wl,-Map=$(BOOT_TARGET).map
+								-Wl,-Map=$(BOOT_DIR)/$(BOOT_TARGET).map
 
 $(BOOT_OBJ_DIR)/%.o:	$(BOOT_DIR)/src/%.c
 		$(info $(BLUE)[INFO]$(RESET) Building object: $@)
