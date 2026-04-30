@@ -1,7 +1,7 @@
-PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))/..))
-SHARED_DIR := $(abspath $(PROJECT_DIR)/shared)
-APP_DIR := $(abspath $(PROJECT_DIR)/app)
-APP_OBJ_DIR := $(abspath $(APP_DIR)/obj)
+PROJECT_DIR := .
+SHARED_DIR := $(PROJECT_DIR)/shared
+APP_DIR := $(PROJECT_DIR)/app
+APP_OBJ_DIR := $(APP_DIR)/obj
 APP_TARGET := app
 
 include $(SHARED_DIR)/shared.mk
@@ -14,14 +14,14 @@ APP_LDFLAGS := $(MCU) -T$(APP_LINKER_SCRIPT) -nostdlib \
 								-Wl,--gc-sections \
 								-Wl,-Map=$(APP_TARGET).map
 
-
-$(warning $(APP_OBJ_DIR))
-
 $(APP_OBJ_DIR)/%.o:	$(APP_DIR)/src/%.c
+		$(info $(BLUE)[INFO]$(RESET) Building object: $@)
 		$(CC) $(CFLAGS) $(DEFS) $(INCLUDES) -c -o $@ $<
 
 $(APP_DIR)/$(APP_TARGET).elf:	$(APP_OBJS)
+		$(info $(BLUE)[INFO]$(RESET) Building executable: $@)
 		$(LD) $(APP_LDFLAGS) -o $@ $(APP_OBJS)
 
 $(APP_DIR)/$(APP_TARGET).bin:	$(APP_DIR)/$(APP_TARGET).elf
+		$(info $(BLUE)[INFO]$(RESET) Converting executable file to binary: app)
 		$(OCPY) -O binary $< $@

@@ -1,10 +1,16 @@
 # Default build type is debug
 BUILD_TYPE ?= debug
 
+# ANSI Colors
+ESC := $(shell printf '\033')
+RED     := $(ESC)[0;31m
+GREEN   := $(ESC)[0;32m
+YELLOW  := $(ESC)[0;33m
+BLUE   := $(ESC)[0;34m
+RESET   := $(ESC)[0m
+
 # Target file name
 TARGET = $(notdir $(CURDIR))
-
-$(info [INFO] Target: $(TARGET))
 
 # CPU architecture
 CPU = -mcpu=cortex-m4
@@ -57,6 +63,8 @@ OCPYFLAGS = --gap-fill=0xFF \
 						--pad-to=0x08004000
 
 all: $(TARGET).bin
+		$(info $(GREEN)[SUCCESS]$(RESET) Build complete! - Binary ouput:)
+		@du -h $^
 
 ##########
 
@@ -68,10 +76,12 @@ include app/app.mk
 TARGET_DEPS = $(BOOT_DIR)/$(BOOT_TARGET).bin $(APP_DIR)/$(APP_TARGET).bin
 
 $(TARGET).bin:	$(TARGET_DEPS)
-
+		$(info $(BLUE)[INFO]$(RESET) Concatenating bootloader and app binaries)
+		cat $^ > $@
 
 clean:
-	rm -f obj/*.o $(TARGET).bin $(TARGET).map
-	rm -f $(SHARED_OBJ_DIR)/*.o
-	rm -f $(BOOT_OBJ_DIR)/*.o $(BOOT_DIR)/$(BOOT_TARGET).bin  $(BOOT_DIR)/$(BOOT_TARGET).elf $(BOOT_DIR)/$(BOOT_TARGET).map
-	rm -f $(APP_OBJ_DIR)/*.o $(APP_DIR)/$(APP_TARGET).bin  $(APP_DIR)/$(APP_TARGET).elf $(APP_DIR)/$(APP_TARGET).map
+		$(info $(BLUE)[INFO]$(RESET) Cleaning build files)
+		rm -f obj/*.o $(TARGET).bin $(TARGET).map
+		rm -f $(SHARED_OBJ_DIR)/*.o
+		rm -f $(BOOT_OBJ_DIR)/*.o $(BOOT_DIR)/$(BOOT_TARGET).bin  $(BOOT_DIR)/$(BOOT_TARGET).elf $(BOOT_DIR)/$(BOOT_TARGET).map
+		rm -f $(APP_OBJ_DIR)/*.o $(APP_DIR)/$(APP_TARGET).bin  $(APP_DIR)/$(APP_TARGET).elf $(APP_DIR)/$(APP_TARGET).map
