@@ -40,7 +40,7 @@ endif
 
 INCLUDES =	-I./inc \
 						-I$(BOOT_DIR)/inc \
-						-I$(SHARED_DIR)/inc \
+						-I$(COMMON_DIR)/inc \
 						-I../chip_headers/CMSIS/Include \
 						-I../chip_headers/CMSIS/Device/ST/STM32F4xx/Include
 
@@ -76,7 +76,7 @@ $(TARGET).bin:	$(TARGET_DEPS)
 
 clean:
 		$(info $(BLUE)[INFO]$(RESET) Cleaning build files)
-		rm -f obj/*.o $(TARGET).bin $(TARGET).map
-		rm -f $(SHARED_OBJ_DIR)/*.o
+		rm -f obj/*.o $(TARGET).bin
+		rm -f $(COMMON_OBJ_DIR)/*.o
 		rm -f $(BOOT_OBJ_DIR)/*.o $(BOOT_DIR)/$(BOOT_TARGET).bin  $(BOOT_DIR)/$(BOOT_TARGET).elf $(BOOT_DIR)/$(BOOT_TARGET).map
 		rm -f $(APP_OBJ_DIR)/*.o $(APP_DIR)/$(APP_TARGET).bin  $(APP_DIR)/$(APP_TARGET).elf $(APP_DIR)/$(APP_TARGET).map

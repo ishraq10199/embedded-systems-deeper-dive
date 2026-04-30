@@ -1,13 +1,13 @@
 # PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))/..))
 PROJECT_DIR := .
-SHARED_DIR := $(PROJECT_DIR)/shared
+COMMON_DIR := $(PROJECT_DIR)/common
 BOOT_DIR := $(PROJECT_DIR)/boot
 BOOT_OBJ_DIR := $(BOOT_DIR)/obj
 BOOT_TARGET := bootloader
 
-include $(SHARED_DIR)/shared.mk
+include $(COMMON_DIR)/common.mk
 
-BOOT_OBJS := $(SHARED_OBJS) $(BOOT_OBJ_DIR)/bootloader.o
+BOOT_OBJS := $(COMMON_OBJS) $(BOOT_OBJ_DIR)/bootloader.o
 
 BOOT_LINKER_SCRIPT := $(BOOT_DIR)/boot.ld
 

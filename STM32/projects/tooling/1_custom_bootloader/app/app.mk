@@ -1,12 +1,12 @@
 PROJECT_DIR := .
-SHARED_DIR := $(PROJECT_DIR)/shared
+COMMON_DIR := $(PROJECT_DIR)/common
 APP_DIR := $(PROJECT_DIR)/app
 APP_OBJ_DIR := $(APP_DIR)/obj
 APP_TARGET := app
 
-include $(SHARED_DIR)/shared.mk
+include $(COMMON_DIR)/common.mk
 
-APP_OBJS := $(SHARED_OBJS) $(APP_OBJ_DIR)/app.o
+APP_OBJS := $(COMMON_OBJS) $(APP_OBJ_DIR)/app.o
 
 APP_LINKER_SCRIPT := $(APP_DIR)/app.ld
 
