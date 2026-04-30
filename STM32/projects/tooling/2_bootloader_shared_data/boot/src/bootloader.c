@@ -1,4 +1,5 @@
 #include "memory_map.h"
+#include "shared.h"
 #include "stm32f411xe.h"
 #include <inttypes.h>
 
@@ -126,6 +127,7 @@ __attribute__((naked)) static void start_app(uint32_t pc, uint32_t sp) {
 
 /* Force this variable in our build, to inspect if the data stays */
 volatile uint32_t myvar = 0x12345678;
+volatile uint8_t boot_count;
 
 int main(void) {
 
@@ -136,6 +138,14 @@ int main(void) {
     uart2_puts("********************************\r\n");
     uart2_puts("\r\n");
     uart2_tx_deinit();
+
+    /* As long as the chip has power, this data will persist across resets */
+    shared_data_increment_boot_count();
+    boot_count = shared_data_get_boot_count();
+
+    /* We can then do something with the boot_count, e.g. call a function if it exceeds 3 */
+    /* Use-cases: Auto resetting 3 times in a row means something may have gone wrong */
+    /* In such a case, we may need some graceful way to handle the problem */
 
     /* Get the pointer to where the app is in ROM */
     uint32_t *app_code = (uint32_t *)&__approm_start__;
