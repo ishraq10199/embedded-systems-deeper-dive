@@ -1,15 +1,15 @@
 #include <stdint.h>
 
 /* SRAM => 512Kbytes, starting at 0x2000_0000 */
-#define SRAM_START              (0x20000000U)
-#define SRAM_SIZE               (128U * 1024U)
-#define SRAM_END                (SRAM_START + SRAM_SIZE)
+#define SRAM_START (0x20000000U)
+#define SRAM_SIZE (128U * 1024U)
+#define SRAM_END (SRAM_START + SRAM_SIZE)
 
 /* Stack Pointer Init address is at the start of the vector table */
-#define SP_INIT_ADDR            (SRAM_END)
+#define SP_INIT_ADDR (SRAM_END)
 
 /* Vector table size in words */
-#define ISR_VECTOR_SIZE_WORDS   (102U)
+#define ISR_VECTOR_SIZE_WORDS (102U)
 
 /* The ISR Vector Table */
 
@@ -152,91 +152,115 @@ __attribute__((weak, alias("Default_Handler"))) void SPI5_IRQHandler(void);
 
 /* Vector table definitions */
 /* Array of const pointers to void functions */
-void (* const isr_vector[ISR_VECTOR_SIZE_WORDS])(void) __attribute__((section(".isr_vector"))) = {
+void (*const isr_vector[ISR_VECTOR_SIZE_WORDS])(void) __attribute__((section(".isr_vector"))) = {
 
- /* Stack pointer init */
- (void (*)(void))SP_INIT_ADDR,
+    /* Stack pointer init */
+    (void (*)(void))SP_INIT_ADDR,
 
- /* Cortex M4 System Exceptions (0 => reserved) */
- Reset_Handler,
- NMI_Handler,
- HardFault_Handler,
- MemManage_Handler,
- BusFault_Handler,
- UsageFault_Handler,
- 0, 0, 0, 0,
- SVC_Handler,
- DebugMon_Handler,
- 0,
- PendSV_Handler,
- SysTick_Handler,
+    /* Cortex M4 System Exceptions (0 => reserved) */
+    Reset_Handler,
+    NMI_Handler,
+    HardFault_Handler,
+    MemManage_Handler,
+    BusFault_Handler,
+    UsageFault_Handler,
+    0,
+    0,
+    0,
+    0,
+    SVC_Handler,
+    DebugMon_Handler,
+    0,
+    PendSV_Handler,
+    SysTick_Handler,
 
- /* STM32F411xE Interrupt Handlers (0 => reserved) */
- WWDG_IRQHandler,
- PVD_IRQHandler,
- TAMP_STAMP_IRQHandler,
- RTC_WKUP_IRQHandler,
- FLASH_IRQHandler,
- RCC_IRQHandler,
- EXTI0_IRQHandler,
- EXTI1_IRQHandler,
- EXTI2_IRQHandler,
- EXTI3_IRQHandler,
- EXTI4_IRQHandler,
- DMA1_Stream0_IRQHandler,
- DMA1_Stream1_IRQHandler,
- DMA1_Stream2_IRQHandler,
- DMA1_Stream3_IRQHandler,
- DMA1_Stream4_IRQHandler,
- DMA1_Stream5_IRQHandler,
- DMA1_Stream6_IRQHandler,
- ADC_IRQHandler,
- 0, 0, 0, 0,
- EXTI9_5_IRQHandler,
- TIM1_BRK_TIM9_IRQHandler,
- TIM1_UP_TIM10_IRQHandler,
- TIM1_TRG_COM_TIM11_IRQHandler,
- TIM1_CC_IRQHandler,
- TIM2_IRQHandler,
- TIM3_IRQHandler,
- TIM4_IRQHandler,
- I2C1_EV_IRQHandler,
- I2C1_ER_IRQHandler,
- I2C2_EV_IRQHandler,
- I2C2_ER_IRQHandler,
- SPI1_IRQHandler,
- SPI2_IRQHandler,
- USART1_IRQHandler,
- USART2_IRQHandler,
- 0,
- EXTI15_10_IRQHandler,
- RTC_Alarm_IRQHandler,
- OTG_FS_WKUP_IRQHandler,
- 0, 0, 0, 0,
- DMA1_Stream7_IRQHandler,
- 0,
- SDIO_IRQHandler,
- TIM5_IRQHandler,
- SPI3_IRQHandler,
- 0, 0, 0, 0,
- DMA2_Stream0_IRQHandler,
- DMA2_Stream1_IRQHandler,
- DMA2_Stream2_IRQHandler,
- DMA2_Stream3_IRQHandler,
- DMA2_Stream4_IRQHandler,
- 0, 0, 0, 0, 0, 0,
- OTG_FS_IRQHandler,
- DMA2_Stream5_IRQHandler,
- DMA2_Stream6_IRQHandler,
- DMA2_Stream7_IRQHandler,
- USART6_IRQHandler,
- I2C3_EV_IRQHandler,
- I2C3_ER_IRQHandler,
- 0, 0, 0, 0, 0, 0, 0,
- FPU_IRQHandler,
- 0, 0,
- SPI4_IRQHandler,
- SPI5_IRQHandler,
+    /* STM32F411xE Interrupt Handlers (0 => reserved) */
+    WWDG_IRQHandler,
+    PVD_IRQHandler,
+    TAMP_STAMP_IRQHandler,
+    RTC_WKUP_IRQHandler,
+    FLASH_IRQHandler,
+    RCC_IRQHandler,
+    EXTI0_IRQHandler,
+    EXTI1_IRQHandler,
+    EXTI2_IRQHandler,
+    EXTI3_IRQHandler,
+    EXTI4_IRQHandler,
+    DMA1_Stream0_IRQHandler,
+    DMA1_Stream1_IRQHandler,
+    DMA1_Stream2_IRQHandler,
+    DMA1_Stream3_IRQHandler,
+    DMA1_Stream4_IRQHandler,
+    DMA1_Stream5_IRQHandler,
+    DMA1_Stream6_IRQHandler,
+    ADC_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    EXTI9_5_IRQHandler,
+    TIM1_BRK_TIM9_IRQHandler,
+    TIM1_UP_TIM10_IRQHandler,
+    TIM1_TRG_COM_TIM11_IRQHandler,
+    TIM1_CC_IRQHandler,
+    TIM2_IRQHandler,
+    TIM3_IRQHandler,
+    TIM4_IRQHandler,
+    I2C1_EV_IRQHandler,
+    I2C1_ER_IRQHandler,
+    I2C2_EV_IRQHandler,
+    I2C2_ER_IRQHandler,
+    SPI1_IRQHandler,
+    SPI2_IRQHandler,
+    USART1_IRQHandler,
+    USART2_IRQHandler,
+    0,
+    EXTI15_10_IRQHandler,
+    RTC_Alarm_IRQHandler,
+    OTG_FS_WKUP_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    DMA1_Stream7_IRQHandler,
+    0,
+    SDIO_IRQHandler,
+    TIM5_IRQHandler,
+    SPI3_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    DMA2_Stream0_IRQHandler,
+    DMA2_Stream1_IRQHandler,
+    DMA2_Stream2_IRQHandler,
+    DMA2_Stream3_IRQHandler,
+    DMA2_Stream4_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    OTG_FS_IRQHandler,
+    DMA2_Stream5_IRQHandler,
+    DMA2_Stream6_IRQHandler,
+    DMA2_Stream7_IRQHandler,
+    USART6_IRQHandler,
+    I2C3_EV_IRQHandler,
+    I2C3_ER_IRQHandler,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    FPU_IRQHandler,
+    0,
+    0,
+    SPI4_IRQHandler,
+    SPI5_IRQHandler,
 };
 
 /* Externally defined - we need this to zero out uninitialized data
@@ -253,47 +277,46 @@ void (* const isr_vector[ISR_VECTOR_SIZE_WORDS])(void) __attribute__((section(".
  */
 extern uint32_t _etext, _sdata, _edata, _sbss, _ebss;
 
-
 /* Defined functions */
 
 void main(void);
 
 void Reset_Handler(void) {
- /**
-  * Quirk:
-  *
-  * _etext (and any similar) value is garbage, so we don't use it
-  * Instead, we use `&_etext` to get the address we need 
-  * The linker uses _etext's address as the relevant value
-  * Details: https://sourceware.org/binutils/docs/ld/Source-Code-Reference.html
-  */
+  /**
+   * Quirk:
+   *
+   * _etext (and any similar) value is garbage, so we don't use it
+   * Instead, we use `&_etext` to get the address we need
+   * The linker uses _etext's address as the relevant value
+   * Details: https://sourceware.org/binutils/docs/ld/Source-Code-Reference.html
+   */
 
- uint32_t *init_values = &_etext;
- uint32_t *data_dest = &_sdata;
- uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
+  uint32_t *init_values = &_etext;
+  uint32_t *data_dest = &_sdata;
+  uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
 
- /* Copy init values from flash memory to SRAM */
- for (uint32_t i = 0; i < data_section_size; i++) {
-  data_dest[i] = init_values[i];
- }
+  /* Copy init values from flash memory to SRAM */
+  for (uint32_t i = 0; i < data_section_size; i++) {
+    data_dest[i] = init_values[i];
+  }
 
- /* Fill the .bss section with zero */
- for (uint32_t *bss = &_sbss; bss < &_ebss;) {
-  *bss++ = 0;
- }
+  /* Fill the .bss section with zero */
+  for (uint32_t *bss = &_sbss; bss < &_ebss;) {
+    *bss++ = 0;
+  }
 
- /* Branch to main function */
- main();
+  /* Branch to main function */
+  main();
 
- /* In case main ever returns, we fall into this infinite loop */
- while (1);
-
+  /* In case main ever returns, we fall into this infinite loop */
+  while (1)
+    ;
 }
-
 
 /* Fallback Exception/Interrupt Handler */
 /* If any handler is defined elsewhere, that will take precedence over this one */
 void Default_Handler(void) {
- /* We stay here indefinitely */
- while(1);
+  /* We stay here indefinitely */
+  while (1)
+    ;
 }

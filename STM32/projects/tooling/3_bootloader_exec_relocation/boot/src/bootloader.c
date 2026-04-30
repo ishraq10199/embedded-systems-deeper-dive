@@ -138,31 +138,32 @@ int main(void) {
   uart2_puts("********************************\r\n");
   uart2_puts("\r\n");
 
-  /* As long as the chip has power, this data will persist across resets */
-  shared_data_increment_boot_count();
-  boot_count = shared_data_get_boot_count();
-
   /* We can then do something with the boot_count, e.g. call a function if it exceeds 3 */
   /* Use-cases: Auto resetting 3 times in a row means something may have gone wrong */
   /* In such a case, we may need some graceful way to handle the problem */
 
-  /* For now, we can print a message to UART if the boot count exceeds 3 */
-  if (boot_count > 3) {
-    uart2_puts("[WARNING] System has rebooted 3 times. Something may be wrong!\r\n");
-    shared_data_reset_boot_count();
+  uint32_t *src_exec = (uint32_t *)&__approm_start__;
+  uint32_t *dest_exec = (uint32_t *)&__execram_start__;
+  uint8_t *temp_src = (uint8_t *)src_exec;
+  uint8_t *temp_dest = (uint8_t *)dest_exec;
+  int exec_size = (int)&__execram_size__;
+
+  uart2_puts("[BOOTLOADER] Copying app firmware to executable ram...\r\n");
+
+  for (int i = 0; i < exec_size; i++) {
+    temp_dest[i] = temp_src[i];
   }
 
-  /* We need to give the app an predictable system state, by de-initializing the UART */
+  uart2_puts("[BOOTLOADER] Copy complete!\r\n");
+  uart2_puts("\r\n");
+
   uart2_tx_deinit();
 
-  /* Get the pointer to where the app is in ROM */
-  uint32_t *app_code = (uint32_t *)&__approm_start__;
-
   /* First 32-bit word contains the stack pointer init address */
-  uint32_t app_sp = app_code[0];
+  uint32_t app_sp = dest_exec[0];
 
   /* Second 32-bit word contains the address to the Reset Handler */
-  uint32_t app_start = app_code[1];
+  uint32_t app_start = dest_exec[1];
 
   myvar++;
 

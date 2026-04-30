@@ -28,9 +28,9 @@ static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk, uint32_
 static uint16_t compute_uart_bd(uint32_t PeriphClk, uint32_t BaudRate);
 
 void uart2_write(int ch) {
-    while (!(USART2->SR & SR_TXE)) {
-    }
-    USART2->DR = (ch & 0xFF);
+  while (!(USART2->SR & SR_TXE)) {
+  }
+  USART2->DR = (ch & 0xFF);
 }
 
 // int __io_putchar(int ch) {
@@ -39,72 +39,72 @@ void uart2_write(int ch) {
 // }
 
 static void uart2_puts(const char *s) {
-    while (*s)
-        uart2_write(*s++);
+  while (*s)
+    uart2_write(*s++);
 }
 
 void uart2_tx_init(void) {
-    /*************** Configure USART GPIO Pin ***************/
-    /* Enable clock access to GPIOA (for PA2) */
-    RCC->AHB1ENR |= GPIOAEN;
+  /*************** Configure USART GPIO Pin ***************/
+  /* Enable clock access to GPIOA (for PA2) */
+  RCC->AHB1ENR |= GPIOAEN;
 
-    /* Set PA2 mode to alternate function mode */
-    GPIOA->MODER &= ~(1U << 4);
-    GPIOA->MODER |= (1U << 5);
+  /* Set PA2 mode to alternate function mode */
+  GPIOA->MODER &= ~(1U << 4);
+  GPIOA->MODER |= (1U << 5);
 
-    /* Set PA2 alternate function type to USART_TX */
-    GPIOA->AFR[0] |= (1U << 8);
-    GPIOA->AFR[0] |= (1U << 9);
-    GPIOA->AFR[0] |= (1U << 10);
-    GPIOA->AFR[0] &= ~(1U << 11);
+  /* Set PA2 alternate function type to USART_TX */
+  GPIOA->AFR[0] |= (1U << 8);
+  GPIOA->AFR[0] |= (1U << 9);
+  GPIOA->AFR[0] |= (1U << 10);
+  GPIOA->AFR[0] &= ~(1U << 11);
 
-    /*************** Configure USART Module ***************/
-    /* Enable clock access to USART2 */
-    RCC->APB1ENR |= USART2EN;
+  /*************** Configure USART Module ***************/
+  /* Enable clock access to USART2 */
+  RCC->APB1ENR |= USART2EN;
 
-    /* Configure baudrate */
-    uart_set_baudrate(USART2, APB1CLK, UART_BAUDRATE);
+  /* Configure baudrate */
+  uart_set_baudrate(USART2, APB1CLK, UART_BAUDRATE);
 
-    /* Configure transfer direction */
-    USART2->CR1 = CR1_TE;
+  /* Configure transfer direction */
+  USART2->CR1 = CR1_TE;
 
-    /* Enable UART module */
-    USART2->CR1 |= CR1_UE;
+  /* Enable UART module */
+  USART2->CR1 |= CR1_UE;
 }
 
 char uart2_read(void) {
-    /* Ensure Data Register is NOT empty (check if SR_RXNE is set) */
-    while (!(USART2->SR & SR_RXNE)) {
-    }
+  /* Ensure Data Register is NOT empty (check if SR_RXNE is set) */
+  while (!(USART2->SR & SR_RXNE)) {
+  }
 
-    /* Once it is, return the value in the data register*/
-    return USART2->DR;
+  /* Once it is, return the value in the data register*/
+  return USART2->DR;
 }
 
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk, uint32_t BaudRate) {
-    USARTx->BRR = compute_uart_bd(PeriphClk, BaudRate);
+  USARTx->BRR = compute_uart_bd(PeriphClk, BaudRate);
 }
 
 static uint16_t compute_uart_bd(uint32_t PeriphClk, uint32_t BaudRate) {
-    return ((PeriphClk + (BaudRate / 2U)) / BaudRate);
+  return ((PeriphClk + (BaudRate / 2U)) / BaudRate);
 }
 
 static void uart2_tx_deinit() {
-    /* Wait for the shift register to finish clocking out the last byte */
-    while (!(USART2->SR & SR_TC)) {
-    }
+  /* Wait for the shift register to finish clocking out the last byte */
+  while (!(USART2->SR & SR_TC)) {
+  }
 
-    /* De-initialize the UART module, i.e. do the reverse of init */
-    USART2->CR1 = 0;
-    USART2->BRR = 0;
-    GPIOA->AFR[0] &= ~(1U << 8);
-    GPIOA->AFR[0] &= ~(1U << 9);
-    GPIOA->AFR[0] &= ~(1U << 10);
-    GPIOA->AFR[0] &= ~(1U << 11);
-    GPIOA->MODER &= ~(1U << 4);
-    GPIOA->MODER &= ~(1U << 5);
-    RCC->APB1ENR &= ~(USART2EN);
-    RCC->AHB1ENR &= ~GPIOAEN;
+  /* De-initialize the UART module, i.e. do the reverse of init */
+  USART2->CR1 = 0;
+  USART2->BRR = 0;
+  GPIOA->AFR[0] &= ~(1U << 8);
+  GPIOA->AFR[0] &= ~(1U << 9);
+  GPIOA->AFR[0] &= ~(1U << 10);
+  GPIOA->AFR[0] &= ~(1U << 11);
+  GPIOA->MODER &= ~(1U << 4);
+  GPIOA->MODER &= ~(1U << 5);
+  RCC->APB1ENR &= ~(USART2EN);
+  RCC->AHB1ENR &= ~GPIOAEN;
 }
 
 /**
@@ -118,7 +118,7 @@ static void uart2_tx_deinit() {
  ** Branch to the address in r0 (bx => branch and exchange)
  **/
 __attribute__((naked)) static void start_app(uint32_t pc, uint32_t sp) {
-    __asm("             \n\
+  __asm("             \n\
           msr msp, r1   \n\
           bx r0         \n\
     ");
@@ -129,29 +129,29 @@ volatile uint32_t myvar = 0x12345678;
 
 int main(void) {
 
-    /* UART message out */
-    uart2_tx_init();
-    uart2_puts("********************************\r\n");
-    uart2_puts("**** BOOTLOADER v0 SAYS HI! ****\r\n");
-    uart2_puts("********************************\r\n");
-    uart2_puts("\r\n");
-    uart2_tx_deinit();
+  /* UART message out */
+  uart2_tx_init();
+  uart2_puts("********************************\r\n");
+  uart2_puts("**** BOOTLOADER v0 SAYS HI! ****\r\n");
+  uart2_puts("********************************\r\n");
+  uart2_puts("\r\n");
+  uart2_tx_deinit();
 
-    /* Get the pointer to where the app is in ROM */
-    uint32_t *app_code = (uint32_t *)&__approm_start__;
+  /* Get the pointer to where the app is in ROM */
+  uint32_t *app_code = (uint32_t *)&__approm_start__;
 
-    /* First 32-bit word contains the stack pointer init address */
-    uint32_t app_sp = app_code[0];
+  /* First 32-bit word contains the stack pointer init address */
+  uint32_t app_sp = app_code[0];
 
-    /* Second 32-bit word contains the address to the Reset Handler */
-    uint32_t app_start = app_code[1];
+  /* Second 32-bit word contains the address to the Reset Handler */
+  uint32_t app_start = app_code[1];
 
-    myvar++;
+  myvar++;
 
-    /* Load the stack pointer to MSP and jump to the app reset handler for execution */
-    start_app(app_start, app_sp);
+  /* Load the stack pointer to MSP and jump to the app reset handler for execution */
+  start_app(app_start, app_sp);
 
-    /* We never come here */
-    while (1) {
-    }
+  /* We never come here */
+  while (1) {
+  }
 }

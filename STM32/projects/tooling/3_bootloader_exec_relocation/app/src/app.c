@@ -1,3 +1,4 @@
+#include "shared.h"
 #include "stm32f4xx.h"
 
 #define GPIOAEN (1U << 0)
@@ -11,6 +12,8 @@ static void set_output(void) {
   GPIOA->MODER |= (1U << 10);
   GPIOA->MODER &= ~(1U << 11);
 }
+
+volatile static uint8_t boot_count;
 
 int main(void) {
 

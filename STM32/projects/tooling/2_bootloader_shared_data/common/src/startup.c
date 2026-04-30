@@ -283,45 +283,45 @@ extern uint32_t _stext, _etext, _sdata, _edata, _sbss, _ebss;
 void main(void);
 
 void Reset_Handler(void) {
-    /**
-     * Quirk:
-     *
-     * _etext (and any similar) value is garbage, so we don't use it
-     * Instead, we use `&_etext` to get the address we need
-     * The linker uses _etext's address as the relevant value
-     * Details: https://sourceware.org/binutils/docs/ld/Source-Code-Reference.html
-     */
+  /**
+   * Quirk:
+   *
+   * _etext (and any similar) value is garbage, so we don't use it
+   * Instead, we use `&_etext` to get the address we need
+   * The linker uses _etext's address as the relevant value
+   * Details: https://sourceware.org/binutils/docs/ld/Source-Code-Reference.html
+   */
 
-    uint32_t *init_values = &_etext;
-    uint32_t *data_dest = &_sdata;
-    uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
+  uint32_t *init_values = &_etext;
+  uint32_t *data_dest = &_sdata;
+  uint32_t data_section_size = ((uint32_t)&_edata - (uint32_t)&_sdata) / sizeof(uint32_t);
 
-    /* Copy init values from flash memory to SRAM */
-    for (uint32_t i = 0; i < data_section_size; i++) {
-        data_dest[i] = init_values[i];
-    }
+  /* Copy init values from flash memory to SRAM */
+  for (uint32_t i = 0; i < data_section_size; i++) {
+    data_dest[i] = init_values[i];
+  }
 
-    /* Fill the .bss section with zero */
-    for (uint32_t *bss = &_sbss; bss < &_ebss;) {
-        *bss++ = 0;
-    }
+  /* Fill the .bss section with zero */
+  for (uint32_t *bss = &_sbss; bss < &_ebss;) {
+    *bss++ = 0;
+  }
 
-    /* Set the vector table base address */
-    // uint32_t *temp = (uint32_t *)&_stext;
-    // SCB->VTOR |= ((uint32_t)temp & SCB_VTOR_TBLOFF_Msk);
+  /* Set the vector table base address */
+  // uint32_t *temp = (uint32_t *)&_stext;
+  // SCB->VTOR |= ((uint32_t)temp & SCB_VTOR_TBLOFF_Msk);
 
-    /* Branch to main function */
-    main();
+  /* Branch to main function */
+  main();
 
-    /* In case main ever returns, we fall into this infinite loop */
-    while (1) {
-    };
+  /* In case main ever returns, we fall into this infinite loop */
+  while (1) {
+  };
 }
 
 /* Fallback Exception/Interrupt Handler */
 /* If any handler is defined elsewhere, that will take precedence over this one */
 void Default_Handler(void) {
-    /* We stay here indefinitely */
-    while (1) {
-    };
+  /* We stay here indefinitely */
+  while (1) {
+  };
 }
