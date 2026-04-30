@@ -307,8 +307,8 @@ void Reset_Handler(void) {
     }
 
     /* Set the vector table base address */
-    uint32_t *temp = (uint32_t *)&_stext;
-    SCB->VTOR |= ((uint32_t)temp & SCB_VTOR_TBLOFF_Msk);
+    // uint32_t *temp = (uint32_t *)&_stext;
+    // SCB->VTOR |= ((uint32_t)temp & SCB_VTOR_TBLOFF_Msk);
 
     /* Branch to main function */
     main();

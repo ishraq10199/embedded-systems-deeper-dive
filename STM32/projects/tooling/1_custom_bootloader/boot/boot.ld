@@ -20,7 +20,7 @@ SECTIONS
   .text :
   {
 		. = ALIGN(4);
-    ._stext = .;
+    _stext = .;
     KEEP(*(.isr_vector .isr_vector.*))
     *(.text .text.*)
     *(.rodata .rodata.*)

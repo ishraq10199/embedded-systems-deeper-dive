@@ -25,6 +25,8 @@ int main(void) {
     /* Second 32-bit word contains the address to the Reset Handler */
     uint32_t app_start = app_code[1];
 
+    myvar++;
+
     /* Load the stack pointer to MSP and jump to the app reset handler for execution */
     start_app(app_start, app_sp);
 
