@@ -17,7 +17,7 @@ volatile uint32_t myvar = 0x12345678;
 
 int main(void) {
     /* Get the pointer to where the app is in ROM */
-    uint32_t *app_code = (uint32_t *)__approm_start__;
+    uint32_t *app_code = (uint32_t *)&__approm_start__;
 
     /* First 32-bit word contains the stack pointer init address */
     uint32_t app_sp = app_code[0];

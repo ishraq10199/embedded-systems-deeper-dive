@@ -8,4 +8,4 @@ CONFIG_DIR="$(readlink -e "$PROJECT_DIR/../common/openocd_cfg")"
 
 openocd -f "$CONFIG_DIR/stlink-v2.cfg" \
   -f "$CONFIG_DIR/stm32f4x.cfg" \
-  -c "program $PROJECT_DIR/$TARGET.elf verify reset"
+  -c "program $PROJECT_DIR/$TARGET.bin 0x08000000 verify reset"
