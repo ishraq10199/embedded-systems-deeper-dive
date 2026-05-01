@@ -14,6 +14,10 @@ This folder contains projects done without using the hardware abstraction layer 
 
 The resulting code may not be as versatile as one would find in the HAL libraries. For example, the ADXL345 library I wrote can access the data registers (raw IMU values) via SPI, but I did not write any function that can access specific data registers via SPI, like I did when writing the functions responsible for I2C access in the same library.
 
+<details>
+
+<summary>Project Detals (toggle expand)</summary>
+
 | Project                                                                                      | Summary                                                                                                                           |
 | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [0 - LED Blink Simple](STM32/projects/baremetal/0_led_blink_simple)                          | Blinks LED1 (PA5) by directly computing and dereferencing peripheral memory addresses. No CMSIS headers used.                     |
@@ -42,11 +46,21 @@ The resulting code may not be as versatile as one would find in the HAL librarie
 | [23 - HardFault: Div by Zero](STM32/projects/baremetal/23_hardfault_ufsr_div_zero)           | Enables the DIV_0_TRP bit in SCB->CCR, then deliberately divides by zero. A custom fault handler catches and reports the UFSR.    |
 | [24 - HardFault: Unaligned Access](STM32/projects/baremetal/24_hardfault_ufsr_unaligned_mem) | Enables UNALIGNED_TRP and accesses a buffer at non-word-aligned offsets to trigger a HardFault, caught by the same fault handler. |
 
-All in all, it turned out to be quite an educational and an enjoyable experience overall to sift through the datasheets and operate on baremetal hardware.
+</details>
+
+<!-- <br> -->
+
+#### Parting thoughts:
+
+All in all, it turned out to be quite an educational and an enjoyable experience overall to sift through the datasheets and operate on baremetal hardware. Without relying on the abstractions, it gave me a better grasp on how the HAL works to some extent.
 
 ### RTOS
 
 This folder contains 11 projects built using FreeRTOS (via CMSIS-RTOS2 and STM32 HAL), progressively covering the core concepts of real-time operating systems, from basic task scheduling and inter-task communication, through synchronization primitives and interrupt-driven designs, to classic concurrency problems like deadlock and priority inversion.
+
+<details>
+
+<summary>Project Detals</summary>
 
 | Project                                                                         | Summary                                                                                                                                                                                |
 | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,15 +76,21 @@ This folder contains 11 projects built using FreeRTOS (via CMSIS-RTOS2 and STM32
 | [9 - Deadlocks and Starvation](STM32/projects/rtos/9_deadlocks_and_starvation)  | Dining philosophers problem with 5 tasks. Deadlock is avoided by enforcing a resource ordering rule, always acquire the lower-numbered chopstick mutex first.                          |
 | [10 - Priority Inversion](STM32/projects/rtos/10_priority_inversion)            | Three tasks at different priority levels share a mutex. Task startup is sequenced to deliberately trigger priority inversion and observe its effects.                                  |
 
-It was great to finally explore an RTOS, and I can now visualize how in past cases, using this would have helped me better organize projects. Although I have worked with concurrency before, I have not used it on microcontrollers or machines with similar constraints. How fun!
+</details>
+
+#### Parting thoughts:
+
+It was great to finally explore an RTOS, and I can now visualize how in past cases, using this would have helped me better organize projects. Although I have worked with concurrency before, I have not used it on microcontrollers or machines with similar constraints. Loads of fun!
 
 ### Tooling
 
-### Tooling
-
-This folder contains 5 projects exploring the build toolchain and bootloader development for the STM32F411RE from first principles, using hand-written Makefiles, custom linker scripts, and no IDE-generated glue code. The projects build progressively toward a fully functional multi-stage bootloader with shared memory, execution relocation, and standard library support. I did this part after going through the excellent blog posts - [Zero to main()](https://interrupt.memfault.com/tag/zero-to-main/) by François Baldassari.
+This folder contains 5 projects exploring the build toolchain and bootloader development for the STM32F411RE from first principles, using hand-written Makefiles, custom linker scripts, and no IDE-generated glue code. The projects build progressively toward a fully functional multi-stage bootloader with shared memory, execution relocation, and standard library support. I did this part after going through the excellent blog posts in - [Zero to main()](https://interrupt.memfault.com/tag/zero-to-main/) by François Baldassari.
 
 I decided to use the knowledge I gained there and learned a bit more stuff from various other sources to make similar implementations on the STM32 board I had. Quite a few things differ in this implementation, such as the memory maps, Makefile structure, project organization, etc.
+
+<details>
+
+<summary>Project Detals</summary>
 
 | Project                                                                                           | Summary                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -79,6 +99,10 @@ I decided to use the knowledge I gained there and learned a bit more stuff from 
 | [2 - Bootloader Shared Data](STM32/projects/tooling/2_bootloader_shared_data)                     | Carves out a dedicated 4 kB `shared` region in SRAM that is not cleared by the startup code, allowing data to persist across resets. A `SharedData` struct tracks a boot counter that the bootloader increments on each startup, warns over UART if it exceeds 3, and resets it. The app binary can read the same shared region.                              |
 | [3 - Bootloader Exec Relocation](STM32/projects/tooling/3_bootloader_exec_relocation)             | The bootloader copies the app binary from flash into a dedicated `execram` region in SRAM before jumping to it, so the application executes entirely from RAM rather than flash. Demonstrates how to structure linker regions and perform the copy loop using linker-exported symbols.                                                                        |
 | [4 - Stdlib Usage](STM32/projects/tooling/4_stdlib_usage)                                         | Integrates newlib into the baremetal build by implementing the required `syscalls.c` stubs (`_write`, `_sbrk`, etc.) and retargeting `__io_putchar` to USART2. This enables `printf` for formatted output in the bootloader and replaces the manual copy loop with `memcpy` from `<string.h>`.                                                                |
+
+</details>
+
+#### Parting thoughts:
 
 I was able to gain much deeper understanding of the core C build system, how the linker scripts and toolchain work, how embedded systems make use of the standard library, how memory regions can be manually mapped and used, and much more. In fact, I can now better appreciate how each byte of memory is laid out in memory, whenever I write code, and will probably always be thinking of efficient usage of the hardware.
 
