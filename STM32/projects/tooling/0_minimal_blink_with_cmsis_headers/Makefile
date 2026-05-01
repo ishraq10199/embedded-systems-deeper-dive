@@ -39,9 +39,7 @@ INCLUDES = 	-I../chip_headers/CMSIS/Include \
 DEFS = -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE
 # Object files
 OBJS =	obj/startup.o \
-				obj/main.o \
-				obj/syscalls.o \
-				obj/sysmem.o \
+				obj/main.o
 
 all: $(TARGET).elf
 

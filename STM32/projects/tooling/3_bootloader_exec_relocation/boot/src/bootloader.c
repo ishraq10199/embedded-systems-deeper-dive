@@ -134,7 +134,7 @@ int main(void) {
   /* UART message out */
   uart2_tx_init();
   uart2_puts("********************************\r\n");
-  uart2_puts("**** BOOTLOADER v0 SAYS HI! ****\r\n");
+  uart2_puts("**** BOOTLOADER v2 SAYS HI! ****\r\n");
   uart2_puts("********************************\r\n");
   uart2_puts("\r\n");
 
