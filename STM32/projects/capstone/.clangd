@@ -1,0 +1,14 @@
+CompileFlags:
+  Compiler: arm-none-eabi-gcc
+  Add:
+    - --target=arm-none-eabi
+    - -std=c17
+    - -DSTM32
+    - -DSTM32F4
+    - -DSTM32F411RETx
+    - -DSTM32F411xE
+    - -I../_chip_headers/CMSIS/Include
+    - -I../_chip_headers/CMSIS/Device/ST/STM32F4xx/Include
+    - -Icommon/inc
+    - -Iboot/inc
+    - -Ishared/inc
