@@ -106,6 +106,10 @@ I decided to use the knowledge I gained there and learned a bit more stuff from 
 
 I was able to gain much deeper understanding of the core C build system, how the linker scripts and toolchain work, how embedded systems make use of the standard library, how memory regions can be manually mapped and used, and much more. In fact, I can now better appreciate how each byte of memory is laid out in memory, whenever I write code, and will probably always be thinking of efficient usage of the hardware.
 
+### Capstone
+
+> _Work in progress!_
+
 ### Notes
 
 #### Using OpenOCD to debug

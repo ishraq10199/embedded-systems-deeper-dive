@@ -33,8 +33,8 @@ LDFLAGS =	$(MCU) -T$(LINKER_SCRIPT) -nostdlib \
 					-Wl,--gc-sections \
 					-Wl,-Map=$(TARGET).map
 
-INCLUDES = 	-I../chip_headers/CMSIS/Include \
-						-I../chip_headers/CMSIS/Device/ST/STM32F4xx/Include
+INCLUDES = 	-I../../_chip_headers/CMSIS/Include \
+						-I../../_chip_headers/CMSIS/Device/ST/STM32F4xx/Include
 
 DEFS = -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE
 # Object files

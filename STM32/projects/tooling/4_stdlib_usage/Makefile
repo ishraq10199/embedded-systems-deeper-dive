@@ -27,8 +27,6 @@ CC = arm-none-eabi-gcc
 LD = arm-none-eabi-gcc
 OCPY = arm-none-eabi-objcopy
 
-LINKER_SCRIPT = ./linker_script.ld
-
 CFLAGS =	$(MCU) -std=gnu11 -Wall \
 					-ffunction-sections -fdata-sections
 
@@ -42,15 +40,10 @@ INCLUDES =	-I./inc \
 						-I$(SHARED_DIR)/inc \
 						-I$(BOOT_DIR)/inc \
 						-I$(COMMON_DIR)/inc \
-						-I../chip_headers/CMSIS/Include \
-						-I../chip_headers/CMSIS/Device/ST/STM32F4xx/Include
+						-I../../_chip_headers/CMSIS/Include \
+						-I../../_chip_headers/CMSIS/Device/ST/STM32F4xx/Include
 
 DEFS = -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE
-
-OBJS =	obj/startup.o \
-				obj/main.o \
-				obj/syscalls.o \
-				obj/sysmem.o
 
 # 0xFF is the reset value of flash, so we pad it with this byte
 # 0x4000 is the space we reserved for the bootrom/bootloader
