@@ -28,6 +28,12 @@
 
 #define HEX_A_OFFSET ('A' - 10)
 
+static volatile bool uart2_initialized = false;
+
+bool uart_initialized(void) {
+  return uart2_initialized;
+}
+
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk,
                               uint32_t BaudRate);
 static uint16_t compute_uart_bd(uint32_t PeriphClk, uint32_t BaudRate);
@@ -85,6 +91,8 @@ void uart2_tx_init(void) {
 
   /* Enable UART module */
   USART2->CR1 |= CR1_UE;
+
+  uart2_initialized = true;
 }
 
 char uart2_read(void) {
@@ -121,6 +129,8 @@ void uart2_tx_deinit() {
   GPIOA->MODER &= ~(1U << 5);
   RCC->APB1ENR &= ~(USART2EN);
   RCC->AHB1ENR &= ~GPIOAEN;
+
+  uart2_initialized = false;
 }
 
 /**
@@ -156,6 +166,8 @@ void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
 
       src++;
     }
+    uart2_write('\r');
+    uart2_write('\n');
     break;
   }
 }

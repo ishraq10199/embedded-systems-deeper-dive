@@ -2,6 +2,7 @@
 #define UART_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 typedef enum ByteMode {
   BYTE_MODE_ASCII,
@@ -10,6 +11,7 @@ typedef enum ByteMode {
 
 void uart2_tx_init(void);
 void uart2_tx_deinit();
+bool uart_initialized(void);
 
 void print_sequential_bytes(uint8_t *src, int length, ByteMode mode);
 
