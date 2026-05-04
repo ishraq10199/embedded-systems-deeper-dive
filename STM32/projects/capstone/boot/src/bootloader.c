@@ -221,17 +221,17 @@ void write_words_flash(uint32_t dest, uint32_t src, uint32_t size) {
   /* Prepare the flash for the writes */
   flash_program_begin(FLASH_WRITE_SIZE_WORD);
 
-  uint32_t i = 0;
+  volatile uint32_t *srcStart = (uint32_t *)src;
+  volatile uint32_t *destCurr = (uint32_t *)dest;
+
+  int i = 0;
   int write_err = 0;
 
-  uint32_t *startDest = (uint32_t *)dest;
-  uint32_t *endDest = (uint32_t *)(dest + (size * sizeof(uint32_t)));
   /* Do the writes and handle errors */
-  while (startDest < endDest && !write_err) {
+  while (i++ < size && !write_err) {
     write_err = flash_program_word(
-        (uint32_t)(startDest++),
-        *(volatile uint32_t *)(src + sizeof(uint32_t)));
-    i += sizeof(uint32_t);
+        (uint32_t)destCurr++,
+        *srcStart++);
   }
 
   if (write_err) {
@@ -301,8 +301,8 @@ int main(void) {
   /* Should be 0xDEADBEEF after a successful write */
   printf(" 0x%08lX \r\n", *(uint32_t *)(testTarget));
 
-  /* Should be byte-wise prints of the 4 words after a successful write */
-  print_sequential_bytes(((uint8_t *)testTarget) + sizeof(uint32_t), 16, BYTE_MODE_HEX);
+  /* Should contain the 4 words after a successful write */
+  print_sequential_words((uint32_t *)testTarget, 8);
 
   /**
    ** END OF FLASH WRITE EXPERIMENT

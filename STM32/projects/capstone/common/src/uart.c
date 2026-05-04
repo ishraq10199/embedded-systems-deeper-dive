@@ -171,3 +171,31 @@ void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
     break;
   }
 }
+
+void print_sequential_words(uint32_t *src, int length) {
+
+  uint32_t currword;
+
+  uint8_t hexchar = 0;
+
+  while (length--) {
+
+    currword = *(src);
+
+    uart2_write('0');
+    uart2_write('x');
+
+    for (int i = 28; i >= 0; i -= 4) {
+      hexchar = (currword >> i) & 0xF;
+
+      uart2_write(
+          hexchar < 10 ? hexchar + '0' : hexchar + HEX_A_OFFSET);
+    }
+
+    uart2_write(' ');
+
+    src++;
+  }
+  uart2_write('\r');
+  uart2_write('\n');
+}
