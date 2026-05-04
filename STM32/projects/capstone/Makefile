@@ -29,6 +29,11 @@ OCPY = arm-none-eabi-objcopy
 
 LINKER_SCRIPT = ./linker_script.ld
 
+MISC_FLAGS = --sysroot=arm-none-eabi
+
+CC += $(MISC_FLAGS)
+LD += $(MISC_FLAGS)
+
 CFLAGS =	$(MCU) -std=gnu11 -Wall \
 					-ffunction-sections -fdata-sections
 

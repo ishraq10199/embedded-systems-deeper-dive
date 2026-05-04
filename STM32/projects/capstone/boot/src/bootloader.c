@@ -1,17 +1,21 @@
 #include "memory_map.h"
-#include "shared.h"
+// #include <string.h>
+// #include "shared.h"
 #include "stm32f411xe.h"
 #include "uart.h"
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
 /**
  ** Load R1 into MSP (msr => Move immediate value to System Register)
  ** Branch to the address in r0 (bx => branch and exchange)
  **/
-__attribute__((naked)) static void start_app(uint32_t pc, uint32_t sp) {
+__attribute__((unused))
+/** TODO: Remove the above when we use the function! */
+
+__attribute__((naked)) static void
+start_app(uint32_t pc, uint32_t sp) {
   __asm("               \n\
           msr msp, r1   \n\
           bx r0         \n\
@@ -35,7 +39,8 @@ __attribute__((naked)) static void start_app(uint32_t pc, uint32_t sp) {
 #define FLASH_PGPERR (1U << 6)
 #define FLASH_PGAERR (1U << 5)
 #define FLASH_WRPERR (1U << 4)
-#define FLASH_WRITE_ERR_MASK (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR | FLASH_WRPERR)
+#define FLASH_WRITE_ERR_MASK                                                   \
+  (FLASH_PGSERR | FLASH_PGPERR | FLASH_PGAERR | FLASH_WRPERR)
 
 typedef enum FlashWriteSize {
 
@@ -50,9 +55,7 @@ typedef enum FlashWriteSize {
  * @brief Check if flash is busy (read/write is in progress)
  * @return True if flash is busy, false if not
  */
-inline bool flash_busy(void) {
-  return !!(FLASH->SR & FLASH_BUSY);
-}
+inline bool flash_busy(void) { return !!(FLASH->SR & FLASH_BUSY); }
 
 /***
  * @brief Lock the flash to prevent erase/writes
@@ -100,7 +103,8 @@ void flash_sector_erase(uint8_t sector) {
 
   /* Data Synchronization Barrier */
   /* This ensures that all memory accesses before it have fully completed */
-  /* Here we use DSB to wait before the erasure in case Flash is being accessed */
+  /* Here we use DSB to wait before the erasure in case Flash is being accessed
+   */
   __DSB();
 
   /* Start the Flash Erase */
@@ -118,7 +122,8 @@ void flash_sector_erase(uint8_t sector) {
 }
 
 /***
- * @brief Initializes the flash for n-bit writes. Assumes flash is unlocked for writes.
+ * @brief Initializes the flash for n-bit writes. Assumes flash is unlocked for
+ * writes.
  *
  * @param sz Enum value relates directly with the two-bit PSIZE value.
  */
@@ -146,8 +151,8 @@ void flash_program_end(void) {
  * @brief Writes a single word (32-bit) to the given address.
  *        Assumes flash is ready for writes.
  *
- * @param address The 32-bit target address. Assumes its a valid address in flash,
- *                and that the write was initialized beforehand.
+ * @param address The 32-bit target address. Assumes its a valid address in
+ * flash, and that the write was initialized beforehand.
  *
  * @returns The status register bit field with only the relevant error bits set,
  *          if there was any write error, otherwise zero.
@@ -159,7 +164,8 @@ int flash_program_word(uint32_t address, uint32_t data) {
 
   /* Data Synchronization Barrier */
   /* This ensures that all memory accesses before it have fully completed */
-  /* Here we use DSB to wait before the erasure in case Flash is being accessed */
+  /* Here we use DSB to wait before the erasure in case Flash is being accessed
+   */
   __DSB();
 
   /* Wait for the Flash memory operation to be over after write */
@@ -182,7 +188,8 @@ int flash_program_word(uint32_t address, uint32_t data) {
 
 /***
  * @brief Handle write errors by only logging out to the UART.
- * @param flash_write_err The FLASH->SR register value, with only the write error bits unmasked.
+ * @param flash_write_err The FLASH->SR register value, with only the write
+ * error bits unmasked.
  *
  */
 void handle_write_errors(int flash_write_err) {
@@ -206,10 +213,6 @@ void handle_write_errors(int flash_write_err) {
   }
 }
 
-/**
- * TODO: REWRITE THIS FUNCTION PROPERLY!!!
- **/
-
 /***
  * @brief Sequentially write data into flash, in words.
  * @param dest Valid flash address
@@ -229,9 +232,7 @@ void write_words_flash(uint32_t dest, uint32_t src, uint32_t size) {
 
   /* Do the writes and handle errors */
   while (i++ < size && !write_err) {
-    write_err = flash_program_word(
-        (uint32_t)destCurr++,
-        *srcStart++);
+    write_err = flash_program_word((uint32_t)destCurr++, *srcStart++);
   }
 
   if (write_err) {
@@ -286,7 +287,7 @@ int main(void) {
   volatile uint32_t *testTarget = (uint32_t *)&__approm_start__;
 
   /* Should be 0xFFFFFFFF after sector erasure */
-  printf(" 0x%08lX \r\n", *(uint32_t *)(testTarget));
+  printf(" 0x%08" PRIX32 "\r\n", *(uint32_t *)(testTarget));
 
   /* Value we want to write to the test target */
   volatile uint32_t temp = 0xDEADBEEF;
@@ -294,12 +295,13 @@ int main(void) {
 
   /* Write to the test target address */
   *testTarget = temp;
-  write_words_flash((uint32_t)testTarget + sizeof(uint32_t), (uint32_t)temp2, 4);
+  write_words_flash((uint32_t)testTarget + sizeof(uint32_t), (uint32_t)temp2,
+                    4);
 
   flash_program_end();
 
   /* Should be 0xDEADBEEF after a successful write */
-  printf(" 0x%08lX \r\n", *(uint32_t *)(testTarget));
+  printf(" 0x%08" PRIX32 "\r\n", *(uint32_t *)(testTarget));
 
   /* Should contain the 4 words after a successful write */
   print_sequential_words((uint32_t *)testTarget, 8);
