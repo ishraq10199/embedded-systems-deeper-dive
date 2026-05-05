@@ -17,12 +17,9 @@ char *__env[1] = {0};
 char **environ = __env;
 
 /* Functions */
-void initialise_monitor_handles() {
-}
+void initialise_monitor_handles() {}
 
-int _getpid(void) {
-  return 1;
-}
+int _getpid(void) { return 1; }
 
 int _kill(int pid, int sig) {
   (void)pid;
@@ -38,14 +35,34 @@ void _exit(int status) {
 }
 
 __attribute__((weak)) int _read(int file, char *ptr, int len) {
+
+  /** Default Implementation.
+  ** May run into a scanf reads that wait for the whole buffer to fill.
+  ** If we use this, we need to do `setvbuf(stdin, NULL, _IONBF, 0)`, for
+  ** scanf to work properly.
+  **/
   (void)file;
   int DataIdx;
 
   for (DataIdx = 0; DataIdx < len; DataIdx++) {
     *ptr++ = __io_getchar();
   }
-
   return len;
+
+  /**
+  ** Alternate Implementaion.
+  ** Removes the need to fill the whole buffer. If we do this, we do not
+  ** need to do the `setvbuf` call like above.
+  **/
+
+  /*
+  (void)file;
+  (void)len;
+
+  *ptr = __io_getchar();
+
+  return 1;
+  */
 }
 
 __attribute__((weak)) int _write(int file, char *ptr, int len) {
@@ -132,9 +149,11 @@ int _execve(char *name, char **argv, char **env) {
 }
 
 /* This is some simplified logic for heap allocation */
-/* If previously unassigned, heap will point to the end of our .stack section in RAM */
+/* If previously unassigned, heap will point to the end of our .stack section in
+ * RAM */
 /* And it will increase/decrease based on when and how this syscall is made */
-/* For more conventional ways of handling the stack, we use the traditional way */
+/* For more conventional ways of handling the stack, we use the traditional way
+ */
 /* Which is to put the stack at the end of SRAM */
 /* For our minimal examples, we can forego this */
 void *_sbrk(int incr) {

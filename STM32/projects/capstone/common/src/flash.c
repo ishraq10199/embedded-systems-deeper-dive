@@ -178,7 +178,7 @@ void handle_write_errors(int flash_write_err) {
   if (!flash_write_err)
     return;
 
-  if (!uart_initialized()) {
+  if (!uart_tx_initialized()) {
     return;
   }
 

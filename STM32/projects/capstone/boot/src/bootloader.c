@@ -117,7 +117,7 @@ void flashWriteTest1(void) {
 int main(void) {
 
   /* UART message out */
-  uart2_tx_init();
+  uart2_tx_rx_init();
   printf("********************************\r\n");
   printf("**** BOOTLOADER v4 SAYS HI! ****\r\n");
   printf("********************************\r\n");
@@ -135,7 +135,15 @@ int main(void) {
    ** END OF FLASH WRITE EXPERIMENT
    */
 
-  uart2_tx_deinit();
+  volatile int x = 0;
+
+  printf("[BOOTLOADER] Enter a value (int): ");
+  fflush(stdout);
+  scanf("%d", &x);
+
+  printf("[BOOTLOADER] Input value: %d\r\n", x);
+
+  uart2_tx_rx_deinit();
 
   /* We never come here */
   while (1) {

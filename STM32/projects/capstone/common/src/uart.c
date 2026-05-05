@@ -1,14 +1,11 @@
 #include "uart.h"
 #include "stm32f411xe.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /**
- ** *********************************************************************************
- ** ******************************* UART CODE - START
- ********************************
- ** *********************************************************************************
+ ** **************************************************************
+ ** ********************* UART CODE - START **********************
+ ** **************************************************************
  */
 
 #define SYS_FREQ 16000000
@@ -26,14 +23,25 @@
 #define SR_RXNE (1U << 5)
 #define SR_TC (1U << 6)
 #define SR_TXE (1U << 7)
+#define SR_ORE (1U << 3)
 
 #define PA2_SET (1U << 2)
+#define PA3_SET (1U << 3)
 
 #define HEX_A_OFFSET ('A' - 10)
 
-static volatile bool uart2_initialized = false;
+static volatile bool uart2_tx_initialized = false;
+static volatile bool uart2_tx_rx_initialized = false;
 
-bool uart_initialized(void) { return uart2_initialized; }
+char uart2_read(void);
+
+bool uart_tx_initialized(void) {
+  return uart2_tx_initialized || uart2_tx_rx_initialized;
+}
+
+bool uart_tx_rx_initialized(void) { return uart2_tx_rx_initialized; }
+
+bool uart_rx_initialized(void) { return uart2_tx_rx_initialized; }
 
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk,
                               uint32_t BaudRate);
@@ -47,6 +55,35 @@ void uart2_write(int ch) {
 
 int __io_putchar(int ch) {
   uart2_write(ch);
+  return ch;
+}
+
+int __io_getchar(void) {
+  volatile uint8_t ch = 0;
+  volatile uint32_t temp;
+
+  /* Check if overrun error has occurred, clear if so */
+  if (USART2->SR & SR_ORE) {
+    /* Clearing the ORE status is done by a software sequence */
+    /* First a read from SR  */
+    temp = USART2->SR;
+    /* Then a read from DR */
+    temp = USART2->DR;
+  }
+
+  /* Prevent the lint error for unused variable */
+  (void)temp;
+
+  ch = uart2_read();
+
+  if (ch == '\r') {
+    ch = '\n';
+    uart2_write('\r');
+    uart2_write('\n');
+  } else {
+    uart2_write(ch);
+  }
+
   return ch;
 }
 
@@ -93,7 +130,8 @@ void uart2_tx_init(void) {
   /* Enable UART module */
   USART2->CR1 |= CR1_UE;
 
-  uart2_initialized = true;
+  uart2_tx_initialized = true;
+  uart2_tx_rx_initialized = false; // since rx not initialized
 }
 
 char uart2_read(void) {
@@ -102,7 +140,7 @@ char uart2_read(void) {
   }
 
   /* Once it is, return the value in the data register*/
-  return USART2->DR;
+  return USART2->DR & 0xFF;
 }
 
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk,
@@ -114,7 +152,52 @@ static uint16_t compute_uart_bd(uint32_t PeriphClk, uint32_t BaudRate) {
   return ((PeriphClk + (BaudRate / 2U)) / BaudRate);
 }
 
-void uart2_tx_deinit() {
+void uart2_tx_rx_init(void) {
+  /*************** Configure USART GPIO Pin ***************/
+  /* Enable clock access to GPIOA (for PA2) */
+  RCC->AHB1ENR |= GPIOAEN;
+
+  /* Set PA2 mode to alternate function mode for TX */
+  GPIOA->MODER &= ~(1U << 4);
+  GPIOA->MODER |= (1U << 5);
+
+  /* Set PA3 mode to alternate function mode for RX */
+  GPIOA->MODER &= ~(1U << 6);
+  GPIOA->MODER |= (1U << 7);
+
+  /* Set PA2 alternate function type to USART_TX - (AFRL2) := (AF) 07 */
+  GPIOA->AFR[0] |= (1U << 8);
+  GPIOA->AFR[0] |= (1U << 9);
+  GPIOA->AFR[0] |= (1U << 10);
+  GPIOA->AFR[0] &= ~(1U << 11);
+
+  /* Set PA3 alternate function type to USART_RX - (AFRL3) := (AF) 07 */
+  GPIOA->AFR[0] |= (1U << 12);
+  GPIOA->AFR[0] |= (1U << 13);
+  GPIOA->AFR[0] |= (1U << 14);
+  GPIOA->AFR[0] &= ~(1U << 15);
+
+  /*************** Configure USART Module ***************/
+  /* Enable clock access to USART2 */
+  RCC->APB1ENR |= USART2EN;
+
+  /* Configure baudrate */
+  uart_set_baudrate(USART2, APB1CLK, UART_BAUDRATE);
+
+  /* Configure transfer direction for TX and RX */
+  USART2->CR1 = (CR1_TE | CR1_RE);
+
+  /* Enable UART module */
+  USART2->CR1 |= CR1_UE;
+
+  setvbuf(stdin, NULL, _IONBF, 0);
+
+  uart2_tx_rx_initialized = true;
+  uart2_tx_initialized = true;
+}
+
+void uart2_tx_deinit(void) {
+
   /* Wait for the shift register to finish clocking out the last byte */
   while (!(USART2->SR & SR_TC)) {
   }
@@ -127,7 +210,7 @@ void uart2_tx_deinit() {
   */
 
   /* Pre-set the ODR value to HIGH */
-  GPIOA->BSRR = PA2_SET;
+  GPIOA->BSRR |= PA2_SET;
 
   /* Change the MODER to output, so that manual control can be established */
   GPIOA->MODER |= (1U << 4);
@@ -149,14 +232,53 @@ void uart2_tx_deinit() {
   RCC->APB1ENR &= ~(USART2EN);
   RCC->AHB1ENR &= ~GPIOAEN;
 
-  uart2_initialized = false;
+  uart2_tx_initialized = false;
+  uart2_tx_rx_initialized = false;
+}
+
+void uart2_tx_rx_deinit(void) {
+  /* Wait for the shift register to finish clocking out the last byte */
+  while (!(USART2->SR & SR_TC)) {
+  }
+
+  /* Pre-set the ODR values to HIGH */
+  GPIOA->BSRR |= PA2_SET;
+  GPIOA->BSRR |= PA3_SET;
+
+  /* Change the MODER to output, so that manual control can be established */
+  /* Do it for PA2 (tx) */
+  GPIOA->MODER |= (1U << 4);
+  GPIOA->MODER &= ~(1U << 5);
+  /* And also for PA3 (rx) */
+  GPIOA->MODER |= (1U << 6);
+  GPIOA->MODER &= ~(1U << 7);
+
+  /* De-initialize the UART module, i.e. do the reverse of init */
+  USART2->CR1 = 0;
+  USART2->BRR = 0;
+  /* Rest AFR for PA2 (tx) */
+  GPIOA->AFR[0] &= ~(1U << 8);
+  GPIOA->AFR[0] &= ~(1U << 9);
+  GPIOA->AFR[0] &= ~(1U << 10);
+  GPIOA->AFR[0] &= ~(1U << 11);
+  /* Rest AFR for PA3 (rx) */
+  GPIOA->AFR[0] &= ~(1U << 12);
+  GPIOA->AFR[0] &= ~(1U << 13);
+  GPIOA->AFR[0] &= ~(1U << 14);
+  GPIOA->AFR[0] &= ~(1U << 15);
+
+  /* Disable clock access to the UART module and GPIOA */
+  RCC->APB1ENR &= ~(USART2EN);
+  RCC->AHB1ENR &= ~GPIOAEN;
+
+  uart2_tx_initialized = false;
+  uart2_tx_rx_initialized = false;
 }
 
 /**
- ** *********************************************************************************
- ** ******************************** UART CODE - END
- *********************************
- ** *********************************************************************************
+ ** ***********************************************************
+ ** ********************** UART CODE - END ********************
+ ** ***********************************************************
  */
 
 void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
