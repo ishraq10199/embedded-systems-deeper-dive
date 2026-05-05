@@ -29,7 +29,7 @@ OCPY = arm-none-eabi-objcopy
 
 LINKER_SCRIPT = ./linker_script.ld
 
-MISC_FLAGS = --sysroot=arm-none-eabi
+MISC_FLAGS = --sysroot=/usr/arm-none-eabi
 
 CC += $(MISC_FLAGS)
 LD += $(MISC_FLAGS)

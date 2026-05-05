@@ -6,7 +6,8 @@
 
 /**
  ** *********************************************************************************
- ** ******************************* UART CODE - START *******************************
+ ** ******************************* UART CODE - START
+ ********************************
  ** *********************************************************************************
  */
 
@@ -26,13 +27,13 @@
 #define SR_TC (1U << 6)
 #define SR_TXE (1U << 7)
 
+#define PA2_SET (1U << 2)
+
 #define HEX_A_OFFSET ('A' - 10)
 
 static volatile bool uart2_initialized = false;
 
-bool uart_initialized(void) {
-  return uart2_initialized;
-}
+bool uart_initialized(void) { return uart2_initialized; }
 
 static void uart_set_baudrate(USART_TypeDef *USARTx, uint32_t PeriphClk,
                               uint32_t BaudRate);
@@ -118,6 +119,20 @@ void uart2_tx_deinit() {
   while (!(USART2->SR & SR_TC)) {
   }
 
+  /* Important: We need to pull the PA2 state to HIGH and change the MODER */
+  /* The reason for this is that when we disable USART, and the MODER is still
+  ** in AF mode, The pin may momentarily go from HIGH to LOW, sending an
+  ** unintended UART start bit. So first we need to set the pin to HIGH
+  ** manually, then change the MODER before changing CR1
+  */
+
+  /* Pre-set the ODR value to HIGH */
+  GPIOA->BSRR = PA2_SET;
+
+  /* Change the MODER to output, so that manual control can be established */
+  GPIOA->MODER |= (1U << 4);
+  GPIOA->MODER &= ~(1U << 5);
+
   /* De-initialize the UART module, i.e. do the reverse of init */
   USART2->CR1 = 0;
   USART2->BRR = 0;
@@ -125,8 +140,12 @@ void uart2_tx_deinit() {
   GPIOA->AFR[0] &= ~(1U << 9);
   GPIOA->AFR[0] &= ~(1U << 10);
   GPIOA->AFR[0] &= ~(1U << 11);
+
+  /* Return PA2 mode to its reset value */
   GPIOA->MODER &= ~(1U << 4);
   GPIOA->MODER &= ~(1U << 5);
+
+  /* Disable clock access to the UART module and GPIOA */
   RCC->APB1ENR &= ~(USART2EN);
   RCC->AHB1ENR &= ~GPIOAEN;
 
@@ -135,7 +154,8 @@ void uart2_tx_deinit() {
 
 /**
  ** *********************************************************************************
- ** ******************************** UART CODE - END ********************************
+ ** ******************************** UART CODE - END
+ *********************************
  ** *********************************************************************************
  */
 
@@ -158,10 +178,8 @@ void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
       hexLow = 0x0F & ch;
       uart2_write('0');
       uart2_write('x');
-      uart2_write(
-          hexHigh < 10 ? hexHigh + '0' : hexHigh + HEX_A_OFFSET);
-      uart2_write(
-          hexLow < 10 ? hexLow + '0' : hexLow + HEX_A_OFFSET);
+      uart2_write(hexHigh < 10 ? hexHigh + '0' : hexHigh + HEX_A_OFFSET);
+      uart2_write(hexLow < 10 ? hexLow + '0' : hexLow + HEX_A_OFFSET);
       uart2_write(' ');
 
       src++;
@@ -188,8 +206,7 @@ void print_sequential_words(uint32_t *src, int length) {
     for (int i = 28; i >= 0; i -= 4) {
       hexchar = (currword >> i) & 0xF;
 
-      uart2_write(
-          hexchar < 10 ? hexchar + '0' : hexchar + HEX_A_OFFSET);
+      uart2_write(hexchar < 10 ? hexchar + '0' : hexchar + HEX_A_OFFSET);
     }
 
     uart2_write(' ');
