@@ -8,7 +8,9 @@ BOOT_TARGET := bootloader
 include $(COMMON_DIR)/common.mk
 include $(SHARED_DIR)/shared.mk
 
-BOOT_OBJS := $(COMMON_OBJS) $(SHARED_OBJ_DIR)/shared.o $(BOOT_OBJ_DIR)/bootloader.o
+BOOT_OBJS := 	$(COMMON_OBJS) $(SHARED_OBJ_DIR)/shared.o \
+							$(BOOT_OBJ_DIR)/firmware.o \
+							$(BOOT_OBJ_DIR)/bootloader.o
 
 BOOT_LINKER_SCRIPT := $(BOOT_DIR)/boot.ld
 

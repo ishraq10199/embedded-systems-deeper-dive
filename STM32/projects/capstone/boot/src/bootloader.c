@@ -1,6 +1,5 @@
-// #include <string.h>
-// #include "shared.h"
-// #include "stm32f411xe.h"
+#include "crc32.h"
+#include "firmware.h"
 #include "flash.h"
 #include "memory_map.h"
 #include "uart.h"
@@ -114,6 +113,83 @@ void flashWriteTest1(void) {
          ok ? "OK" : "MISMATCH");
 }
 
+/***
+ * @brief Tests the following CRC operations:
+ *        1. Check CRC value computed over 1 word
+ *        2. Check CRC value computed over 2 sequential words
+ *        3. Check CRC value computed over 4 sequential words
+ */
+void crc_test0(void) {
+  uint32_t data[] = {0x12345678, 0x23456789, 0x3456789A, 0x456789AB};
+
+  uint32_t crc;
+
+  printf("[CRC Test 0] Computing CRC32 for 1 word...\r\n");
+  crc = compute_crc32(data, 1);
+  printf("[CRC Test 0] Expected: 0x%08" PRIX32 "\r\n", (uint32_t)0xDF8A8A2B);
+  printf("[CRC Test 0] Recieved: 0x%08" PRIX32 "\r\n", crc);
+
+  printf("[CRC Test 0] Computing CRC32 for 2 words...\r\n");
+  crc = compute_crc32(data, 2);
+  printf("[CRC Test 0] Expected: 0x%08" PRIX32 "\r\n", (uint32_t)0x78151F4D);
+  printf("[CRC Test 0] Recieved: 0x%08" PRIX32 "\r\n", crc);
+
+  printf("[CRC Test 0] Computing CRC32 for 4 words...\r\n");
+  crc = compute_crc32(data, 4);
+  printf("[CRC Test 0] Expected: 0x%08" PRIX32 "\r\n", (uint32_t)0xF62CB9EB);
+  printf("[CRC Test 0] Recieved: 0x%08" PRIX32 "\r\n", crc);
+}
+
+/***
+ * @brief Tests the following CRC operations:
+ *        1. Check and Validate CRC value computed over 1 word
+ *        2. Check and Validate CRC value computed over 2 sequential words
+ *        3. Check and Validate CRC value computed over 4 sequential words
+ */
+void crc_test1(void) {
+
+  bool valid;
+
+  /* Single data word with 1 CRC word appended */
+  uint32_t data_with_crc_A[] = {
+      0x12345678,
+      0xDF8A8A2B, // CRC
+  };
+
+  /* 2 data words with 1 CRC word appended */
+  uint32_t data_with_crc_B[] = {
+      0x12345678, 0x23456789,
+      0x78151F4D, // CRC
+  };
+
+  /* 4 data words with 1 CRC word appended */
+  uint32_t data_with_crc_C[] = {
+      0x12345678, 0x23456789, 0x3456789A, 0x456789AB,
+      0xF62CB9EB, // CRC
+  };
+
+  printf("[CRC Test 1] Validating CRC32 for CRC appended 2 word message... ");
+  valid = validate_data_with_crc32(data_with_crc_A, 2);
+  if (valid)
+    printf("OK!\r\n");
+  else
+    printf("MISMATCH!\r\n");
+
+  printf("[CRC Test 1] Validating CRC32 for CRC appended 3 word message... ");
+  valid = validate_data_with_crc32(data_with_crc_B, 3);
+  if (valid)
+    printf("OK!\r\n");
+  else
+    printf("MISMATCH!\r\n");
+
+  printf("[CRC Test 1] Validating CRC32 for CRC appended 5 word message... ");
+  valid = validate_data_with_crc32(data_with_crc_C, 5);
+  if (valid)
+    printf("OK!\r\n");
+  else
+    printf("MISMATCH!\r\n");
+}
+
 int main(void) {
 
   /* UART message out */
@@ -135,14 +211,16 @@ int main(void) {
    ** END OF FLASH WRITE EXPERIMENT
    */
 
-  volatile int x = 0;
+  /**
+   ** START OF CRC32 EXPERIMENT
+   */
+  crc_test0();
+  crc_test1();
+  /**
+   ** END OF CRC32 EXPERIMENT
+   */
 
-  printf("[BOOTLOADER] Enter a value (int): ");
-  fflush(stdout);
-  scanf("%d", &x);
-
-  printf("[BOOTLOADER] Input value: %d\r\n", x);
-
+  test();
   uart2_tx_rx_deinit();
 
   /* We never come here */
