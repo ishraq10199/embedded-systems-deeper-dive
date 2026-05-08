@@ -200,7 +200,13 @@ void update_firmware_via_uart(void) {
   uart_tx_deinit(); /** TODO: Consider moving this down */
 
   /** TODO: Find a proper timeout value that works with the given baud-rate */
+  /** TODO: Use CRC checks for the image metadata values received from host */
   /** TODO: Make an abort function to break from the update process */
   /** TODO: Make a houskeeping function */
   /** TODO: Use the housekeeping function in both fail and success cases  */
+
+  /** EXTRA-TODO: Try to implement two approm regions to ping-pong
+   *              write the new image to the inactive bank, verify it
+   *              completely, then atomically switch the boot pointer.
+   */
 }

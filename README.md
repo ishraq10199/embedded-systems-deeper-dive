@@ -2,13 +2,13 @@
 
 This repo will be used to track my deep-dive learning progress with embedded systems. Although I have some experience with it, I never quite formalized my learning through first principles. Hopefully I can cover stuff I was always interested in, like linkers, bootloaders, baremetal code, RTOS, etc. and track my journey throughout.
 
-## STM32
+## 🧇 STM32
 
 As a starter, I will be using an STM32 board, or more precisely, [this one](https://store.roboticsbd.com/development-boards/1133-xnucleo-f411re-improved-stm32-nucleo-board-robotics-bangladesh.html), as it was the one I had in stock when I was starting. The board is assumed to be deprecated, as looking up its datasheet returns a `404` on the manufacturer's site.
 
 The documentation and datasheets will be included under the `docs` folder.
 
-### Baremetal
+### ⚙️ Baremetal
 
 This folder contains projects done without using the hardware abstraction layer (HAL). I wanted to learn how the baremetal code works by manipulating registers and values in memory addresses directly.
 
@@ -54,7 +54,7 @@ The resulting code may not be as versatile as one would find in the HAL librarie
 
 All in all, it turned out to be quite an educational and an enjoyable experience overall to sift through the datasheets and operate on baremetal hardware. Without relying on the abstractions, it gave me a better grasp on how the HAL works to some extent.
 
-### RTOS
+### ⏳ RTOS
 
 This folder contains 11 projects built using FreeRTOS (via CMSIS-RTOS2 and STM32 HAL), progressively covering the core concepts of real-time operating systems, from basic task scheduling and inter-task communication, through synchronization primitives and interrupt-driven designs, to classic concurrency problems like deadlock and priority inversion.
 
@@ -82,7 +82,7 @@ This folder contains 11 projects built using FreeRTOS (via CMSIS-RTOS2 and STM32
 
 It was great to finally explore an RTOS, and I can now visualize how in past cases, using this would have helped me better organize projects. Although I have worked with concurrency before, I have not used it on microcontrollers or machines with similar constraints. Loads of fun!
 
-### Tooling
+### 🛠️ Tooling
 
 This folder contains 5 projects exploring the build toolchain and bootloader development for the STM32F411RE from first principles, using hand-written Makefiles, custom linker scripts, and no IDE-generated glue code. The projects build progressively toward a fully functional multi-stage bootloader with shared memory, execution relocation, and standard library support. I did this part after going through the excellent blog posts in - [Zero to main()](https://interrupt.memfault.com/tag/zero-to-main/) by François Baldassari.
 
@@ -106,7 +106,7 @@ I decided to use the knowledge I gained there and learned a bit more stuff from 
 
 I was able to gain much deeper understanding of the core C build system, how the linker scripts and toolchain work, how embedded systems make use of the standard library, how memory regions can be manually mapped and used, and much more. In fact, I can now better appreciate how each byte of memory is laid out in memory, whenever I write code, and will probably always be thinking of efficient usage of the hardware.
 
-### Capstone
+### ✨ Capstone
 
 > _Work in progress!_
 
