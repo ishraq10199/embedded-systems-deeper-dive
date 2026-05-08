@@ -193,7 +193,7 @@ void crc_test1(void) {
 int main(void) {
 
   /* UART message out */
-  uart2_tx_rx_init();
+  uart_tx_rx_init();
   printf("********************************\r\n");
   printf("**** BOOTLOADER v4 SAYS HI! ****\r\n");
   printf("********************************\r\n");
@@ -221,7 +221,9 @@ int main(void) {
    */
 
   test();
-  uart2_tx_rx_deinit();
+  uart_tx_rx_deinit();
+
+  update_firmware_via_uart();
 
   /* We never come here */
   while (1) {

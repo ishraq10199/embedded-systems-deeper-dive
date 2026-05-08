@@ -1,5 +1,7 @@
 #include "uart.h"
 #include "stm32f411xe.h"
+#include "tim.h"
+#include <stdint.h>
 #include <stdio.h>
 
 /**
@@ -32,6 +34,7 @@
 
 static volatile bool uart2_tx_initialized = false;
 static volatile bool uart2_tx_rx_initialized = false;
+static volatile bool uart2_rx_echo = true;
 
 char uart2_read(void);
 
@@ -52,6 +55,8 @@ void uart2_write(int ch) {
   }
   USART2->DR = (ch & 0xFF);
 }
+
+void uart_send_byte(uint8_t ch) { uart2_write(ch); }
 
 int __io_putchar(int ch) {
   uart2_write(ch);
@@ -75,7 +80,10 @@ int __io_getchar(void) {
   (void)temp;
 
   ch = uart2_read();
+  if (!uart2_rx_echo)
+    return ch;
 
+  /* Echo the character */
   if (ch == '\r') {
     ch = '\n';
     uart2_write('\r');
@@ -102,7 +110,10 @@ static void uart2_put_n(const char *s, int n) {
   }
 }
 
-void uart2_tx_init(void) {
+void uart_tx_init(void) {
+  if (uart2_tx_initialized || uart2_tx_rx_initialized)
+    return;
+
   /*************** Configure USART GPIO Pin ***************/
   /* Enable clock access to GPIOA (for PA2) */
   RCC->AHB1ENR |= GPIOAEN;
@@ -152,7 +163,9 @@ static uint16_t compute_uart_bd(uint32_t PeriphClk, uint32_t BaudRate) {
   return ((PeriphClk + (BaudRate / 2U)) / BaudRate);
 }
 
-void uart2_tx_rx_init(void) {
+void uart_tx_rx_init(void) {
+  if (uart2_tx_rx_initialized)
+    return;
   /*************** Configure USART GPIO Pin ***************/
   /* Enable clock access to GPIOA (for PA2) */
   RCC->AHB1ENR |= GPIOAEN;
@@ -196,8 +209,7 @@ void uart2_tx_rx_init(void) {
   uart2_tx_initialized = true;
 }
 
-void uart2_tx_deinit(void) {
-
+void uart_tx_deinit(void) {
   /* Wait for the shift register to finish clocking out the last byte */
   while (!(USART2->SR & SR_TC)) {
   }
@@ -236,7 +248,7 @@ void uart2_tx_deinit(void) {
   uart2_tx_rx_initialized = false;
 }
 
-void uart2_tx_rx_deinit(void) {
+void uart_tx_rx_deinit(void) {
   /* Wait for the shift register to finish clocking out the last byte */
   while (!(USART2->SR & SR_TC)) {
   }
@@ -282,7 +294,6 @@ void uart2_tx_rx_deinit(void) {
  */
 
 void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
-
   uint8_t ch;
 
   uint8_t hexLow = 0;
@@ -313,13 +324,11 @@ void print_sequential_bytes(uint8_t *src, int length, ByteMode mode) {
 }
 
 void print_sequential_words(uint32_t *src, int length) {
-
   uint32_t currword;
 
   uint8_t hexchar = 0;
 
   while (length--) {
-
     currword = *(src);
 
     uart2_write('0');
@@ -337,4 +346,55 @@ void print_sequential_words(uint32_t *src, int length) {
   }
   uart2_write('\r');
   uart2_write('\n');
+}
+
+void uart_rx_enable_echo(void) { uart2_rx_echo = true; }
+void uart_rx_disable_echo(void) { uart2_rx_echo = false; }
+int uart_read_byte(uint8_t *dest, uint32_t timeoutMs) {
+  /* If data is already here, we do not initialize the timer */
+  if (USART2->SR & SR_RXNE) {
+    *dest = USART2->DR & 0xFF;
+    return 0;
+  }
+
+  systick_init();
+  uint32_t start = get_tick_ms();
+
+  while (!(USART2->SR & SR_RXNE)) {
+    if ((get_tick_ms() - start) >= timeoutMs) {
+      return -1;
+    }
+  }
+
+  *dest = USART2->DR & 0xFF;
+  return 0;
+}
+
+int uart_read_word(uint32_t *dest, uint32_t timeoutMs) {
+  uint32_t val = 0;
+  int ret;
+  uint8_t tempByte;
+  uint32_t timeoutMsPerByte = timeoutMs / 4;
+
+  for (int i = 0; i < 32; i += 8) {
+    ret = uart_read_byte(&tempByte, timeoutMsPerByte) << i;
+    if (ret == -1)
+      return -1;
+    val |= (tempByte << i);
+  }
+
+  *dest = val;
+  return 0;
+}
+
+int uart_read_word_stream(uint32_t *dest, uint32_t len, uint32_t timeoutMs) {
+  int ret;
+  uint32_t timeoutPerWord = timeoutMs / 500;
+  while (len--) {
+    ret = uart_read_word(dest, timeoutPerWord);
+    if (ret == -1)
+      return -1;
+    dest++;
+  }
+  return 0;
 }
