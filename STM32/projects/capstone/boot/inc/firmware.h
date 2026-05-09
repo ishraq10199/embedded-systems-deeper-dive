@@ -21,7 +21,6 @@
 #define FLASH_APPROM_SECTOR (1U)
 
 typedef struct FirmwareInfo_t FirmwareInfo_t;
-
 void test(void);
 void print_firmware_info(void);
 void update_firmware_via_uart(void);
