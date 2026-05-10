@@ -2,6 +2,7 @@
 #include "crc32.h"
 #include "flash.h"
 #include "memory_map.h"
+#include "tim.h"
 #include "uart.h"
 #include <inttypes.h>
 #include <stdint.h>
@@ -161,6 +162,8 @@ void update_firmware_via_uart(void) {
   bool crc_valid = false;
   FirmwareInfo_t currFwInfo;
 
+  systick_init();
+
   uint32_t chunks[WORDS_PER_CHUNK_WITH_CRC];
 
   /** UART Handshake - Required before Firmware update **/
@@ -179,8 +182,6 @@ void update_firmware_via_uart(void) {
 
   /* Step 3: Disable UART input echo */
   uart_rx_disable_echo();
-  /* Step 4: Send an ACK to the host to initiate data transfer */
-  uart_send_byte(FW_UPDATE_ACK);
 
   /** Flash preparation **/
   /* Step 0: Get current firmware data, and check if firmware exists */
@@ -195,6 +196,9 @@ void update_firmware_via_uart(void) {
   flash_unlock();
   flash_sector_erase(FLASH_APPROM_SECTOR);
   flash_program_begin(FLASH_WRITE_SIZE_WORD);
+
+  /* Step 3: Send an ACK to the host to initiate data transfer */
+  uart_send_byte(FW_UPDATE_ACK);
 
   /** UART Data Transfer sequence **/
   /* Step 0: Host will send the image version (word), respond with ACK */

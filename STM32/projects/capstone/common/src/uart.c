@@ -11,7 +11,7 @@
  */
 
 #define SYS_FREQ 16000000
-#define UART_BAUDRATE 115200
+#define UART_BAUDRATE 4800
 
 #define APB1CLK SYS_FREQ
 
@@ -357,7 +357,6 @@ int uart_read_byte(uint8_t *dest, uint32_t timeoutMs) {
     return 0;
   }
 
-  systick_init();
   uint32_t start = get_tick_ms();
 
   while (!(USART2->SR & SR_RXNE)) {
@@ -377,10 +376,10 @@ int uart_read_word(uint32_t *dest, uint32_t timeoutMs) {
   uint32_t timeoutMsPerByte = timeoutMs / 4;
 
   for (int i = 0; i < 32; i += 8) {
-    ret = uart_read_byte(&tempByte, timeoutMsPerByte) << i;
+    ret = uart_read_byte(&tempByte, timeoutMsPerByte);
     if (ret == -1)
       return -1;
-    val |= (tempByte << i);
+    val |= ((uint32_t)tempByte << i);
   }
 
   *dest = val;
