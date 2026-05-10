@@ -7,6 +7,7 @@ COMMON_SRCS := 	$(COMMON_DIR)/src/startup.c \
 								$(COMMON_DIR)/src/uart.c \
 								$(COMMON_DIR)/src/flash.c \
 								$(COMMON_DIR)/src/tim.c \
+								$(COMMON_DIR)/src/test.c \
 								$(COMMON_DIR)/src/crc32.c
 
 
@@ -16,6 +17,7 @@ COMMON_OBJS := 	$(COMMON_OBJ_DIR)/startup.o \
 								$(COMMON_OBJ_DIR)/uart.o \
 								$(COMMON_OBJ_DIR)/flash.o \
 								$(COMMON_OBJ_DIR)/tim.o \
+								$(COMMON_OBJ_DIR)/test.o \
 								$(COMMON_OBJ_DIR)/crc32.o
 
 $(COMMON_OBJ_DIR)/%.o:	$(COMMON_DIR)/src/%.c

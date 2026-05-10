@@ -240,6 +240,11 @@ def main() -> None:
         # --- Done ---
         ser.write(bytes([FW_UPDATE_FIN]))
         print("\nFirmware transfer complete.")
+        print("Switching to standard read from device...")
+        print("-----------------------------------------\n")
+
+        while True:
+            print(ser.readline().decode(encoding='ascii'), end='')
 
 # Used to debug:
 # python uart_firmware_update.py /dev/ttyUSB0 ./example.bin --timeout 10

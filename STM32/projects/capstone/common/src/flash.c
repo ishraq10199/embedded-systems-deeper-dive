@@ -42,12 +42,13 @@ void flash_unlock(void) {
  */
 void flash_sector_erase(uint8_t sector) {
 
-  /* Activate sector erase */
-  FLASH->CR |= FLASH_SECTOR_ERASE_EN;
-
+  /* Check if the sector is actually valid */
   if (sector >= SECTOR_COUNT) {
     return;
   }
+
+  /* Activate sector erase */
+  FLASH->CR |= FLASH_SECTOR_ERASE_EN;
 
   /* Select sector 1 (approm region) for erasure */
   FLASH->CR &= ~(FLASH_SNB_MASK);
@@ -136,6 +137,18 @@ int flash_program_word(uint32_t address, uint32_t data) {
   }
 
   return 0;
+}
+
+/***
+ * @brief Waits for pending flash operations to complete.
+ *        To be used externally.
+ */
+void wait_for_pending_flash_operations(void) {
+  __DSB();
+
+  /* Wait for the Flash memory operation to be over after write */
+  while (FLASH->SR & FLASH_BUSY) {
+  }
 }
 
 /***

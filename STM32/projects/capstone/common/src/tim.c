@@ -18,6 +18,12 @@ void systick_init(void) {
   timer_initialized = true;
 }
 
+void systick_deinit(void) {
+  /* Disable systick */
+  SysTick->CTRL = 0;
+  timer_initialized = false;
+}
+
 uint32_t get_tick_ms(void) { return tick_ms; }
 
 /* Override the Systick interrupt handler */

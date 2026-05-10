@@ -44,6 +44,7 @@ void flash_program_end(void);
 int flash_program_word(uint32_t address, uint32_t data);
 void write_words_flash(uint32_t dest, uint32_t src, uint32_t size);
 void handle_write_errors(int flash_write_err);
+void wait_for_pending_flash_operations(void);
 bool validate_sequential_word_write(uint32_t target, uint32_t src,
                                     uint32_t len);
 

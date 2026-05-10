@@ -54,7 +54,7 @@ DEFS = -DSTM32 -DSTM32F4 -DSTM32F411RETx -DSTM32F411xE
 
 # 0xFF is the reset value of flash, so we pad it with this byte
 # 0x4000 is the space we reserved for the bootrom/bootloader
-# We pad the rest of the space, upto where the approm starts
+# We pad the rest of the space, upto where the approms start
 OCPYFLAGS = --gap-fill=0xFF \
 						--pad-to=0x08004000
 

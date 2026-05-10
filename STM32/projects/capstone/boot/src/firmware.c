@@ -2,11 +2,13 @@
 #include "crc32.h"
 #include "flash.h"
 #include "memory_map.h"
+#include "stm32f4xx.h"
 #include "tim.h"
 #include "uart.h"
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define MAX_CHUNK_RETRIES (10U)
 #define WORDS_PER_CHUNK_WITHOUT_CRC (512U)
@@ -23,15 +25,18 @@ typedef enum FWUpdateAbortReason {
   FW_UPDATE_ERR_TOO_MANY_CHUNK_RETRIES,
   FW_UPDATE_ERR_UNEXPECTED_END_PACKET,
   FW_UPDATE_ERR_FINAL_IMAGE_CRC_MISMATCH,
+  FW_UPDATE_ERR_IMAGE_TOO_LARGE,
 
 } FWUpdateAbortReason;
 
 static FirmwareInfo_t *fw = NULL;
+// We use this to refer to the region we are writing in
+volatile static AppromRegion targetAppromRegion;
 
-void test(void) {
-  printf("Hello firmware 0x%08" PRIX32 "\r\n", (uint32_t)FW_METADATA_ADDR);
-  print_firmware_info();
-}
+// The current valid approm's region
+volatile static AppromRegion runningAppromRegion;
+// The approm region where our next update would go
+volatile static AppromRegion nextAppromRegion;
 
 /**** --- Firmware Metadata Functions --- ****/
 
@@ -40,17 +45,123 @@ static void ensure_fw_addr_initialized(void) {
     fw = (FirmwareInfo_t *)FW_METADATA_ADDR;
 }
 
+static void ensure_fw_approm_region_selected(void) {
+  ensure_fw_addr_initialized();
+  runningAppromRegion = fw->region ? fw->region : APPROM_REGION_UNDEFINED;
+
+  switch (runningAppromRegion) {
+
+  case APPROM_REGION_UNDEFINED:
+  case APPROM_REGION_B:
+    nextAppromRegion = APPROM_REGION_A;
+    break;
+  case APPROM_REGION_A:
+    nextAppromRegion = APPROM_REGION_B;
+    break;
+  }
+}
+
+AppromRegion get_existing_approm_region(void) {
+  ensure_fw_approm_region_selected();
+  return runningAppromRegion;
+}
+
+uint8_t get_approm_sector_start(AppromRegion region) {
+  ensure_fw_approm_region_selected();
+  switch (region) {
+  case APPROM_REGION_UNDEFINED:
+  case APPROM_REGION_A:
+    return FLASH_APPROM_A_SECTOR_START;
+  case APPROM_REGION_B:
+    return FLASH_APPROM_B_SECTOR_START;
+    break;
+  default:
+    return FLASH_APPROM_A_SECTOR_START;
+  }
+}
+
+uint8_t get_approm_sector_end(AppromRegion region) {
+  switch (region) {
+  case APPROM_REGION_UNDEFINED:
+  case APPROM_REGION_A:
+    return FLASH_APPROM_A_SECTOR_END;
+  case APPROM_REGION_B:
+    return FLASH_APPROM_B_SECTOR_END;
+    break;
+  default:
+    return FLASH_APPROM_A_SECTOR_END;
+  }
+}
+
+uint32_t *get_approm_start_address(AppromRegion region) {
+  switch (region) {
+  case APPROM_REGION_UNDEFINED:
+  case APPROM_REGION_A:
+    return (uint32_t *)&__appromA_start__;
+  case APPROM_REGION_B:
+    return (uint32_t *)&__appromB_start__;
+    break;
+  default:
+    return (uint32_t *)&__appromA_start__;
+  }
+}
+
+AppromRegion get_next_approm_region(void) {
+  ensure_fw_approm_region_selected();
+  return nextAppromRegion;
+}
+
+const char *get_approm_region_name(AppromRegion region) {
+  switch (region) {
+
+  case APPROM_REGION_UNDEFINED:
+    return "?";
+  case APPROM_REGION_A:
+    return "A";
+  case APPROM_REGION_B:
+    return "B";
+  }
+  return "\0";
+}
+
 void print_firmware_info(void) {
   ensure_fw_addr_initialized();
+
+  char regionName[2];
+  strcpy(regionName, get_approm_region_name(fw->region));
+
   printf("[:::::::: FIRMWARE INFO START ::::::::]\r\n");
-  printf("  + Version:\t 0x%08" PRIX32 "\r\n  + CRC:\t 0x%08" PRIX32 "\r\n",
-         fw->version, fw->crc);
+  printf("  + Version:\t 0x%08" PRIX32 "\r\n  + CRC:\t 0x%08" PRIX32
+         "\r\n  + Region:\t %s\r\n",
+         fw->version, fw->crc, regionName);
   printf("[::::::::: FIRMWARE INFO END :::::::::]\r\n");
 }
 
 void update_firmware_info(FirmwareInfo_t *newFwInfo) {
+  flash_sector_erase(METAROM_SECTOR);
   write_words_flash((uint32_t)FW_METADATA_ADDR, (uint32_t)newFwInfo,
                     FW_METADATA_WORDS);
+}
+
+void update_approm_regions(void) {
+  runningAppromRegion = targetAppromRegion;
+
+  switch (targetAppromRegion) {
+
+  case APPROM_REGION_UNDEFINED: // Should never happen
+  case APPROM_REGION_B:
+    nextAppromRegion = APPROM_REGION_A;
+    break;
+  case APPROM_REGION_A:
+    nextAppromRegion = APPROM_REGION_B;
+    break;
+  }
+}
+
+uint32_t *get_current_approm_start(void) {
+  ensure_fw_approm_region_selected();
+  AppromRegion region = get_existing_approm_region();
+  return get_approm_start_address(region);
 }
 
 FirmwareInfo_t *get_firmware_info(void) {
@@ -60,7 +171,23 @@ FirmwareInfo_t *get_firmware_info(void) {
 
 /**** --- Firmware Write Functions --- ****/
 
+void erase_approm_sectors(AppromRegion region) {
+
+  wait_for_pending_flash_operations();
+
+  if (region == APPROM_REGION_UNDEFINED)
+    return;
+  uint8_t sector_start = get_approm_sector_start(region);
+  uint8_t sector_end = get_approm_sector_end(region);
+
+  for (uint8_t i = sector_start; i <= sector_end; i++) {
+    flash_sector_erase(i);
+  }
+}
+
 void firmware_update_cleanup(bool updateSuccessful) {
+
+  wait_for_pending_flash_operations();
 
   /* End Flash programming */
   flash_program_end();
@@ -71,17 +198,18 @@ void firmware_update_cleanup(bool updateSuccessful) {
   /* Re-enable echo on UART RX */
   uart_rx_enable_echo();
 
-  /**
-  ** TODO: After A/B flash implementation, print that info here
-  **       This will involve info regarding the current valid flash
-  **       sector, the metadata of the last valid firmware, etc.
-  */
-
   if (updateSuccessful) {
     printf("[FIRMWARE] Update successful!\r\n");
+    printf("[FIRMWARE] Approm region: %s\r\n",
+           get_approm_region_name(targetAppromRegion));
+
+    update_approm_regions();
+
   } else {
     printf("[FIRMWARE] Update failed!\r\n");
   }
+
+  targetAppromRegion = APPROM_REGION_UNDEFINED;
 
   /* Deinitialize UART TXRX */
   uart_tx_rx_deinit();
@@ -96,7 +224,8 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
   flash_program_end();
 
   /* Flash sector erase */
-  flash_sector_erase(FLASH_APPROM_SECTOR);
+  erase_approm_sectors(targetAppromRegion);
+  targetAppromRegion = APPROM_REGION_UNDEFINED;
 
   /* Print some debugging information */
   printf("[FIRMWARE] Update aborted! Reason: ");
@@ -123,6 +252,9 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
     printf(
         "Final calculated CRC of the image does not match provided metadata. ");
     break;
+  case FW_UPDATE_ERR_IMAGE_TOO_LARGE:
+    printf("Image size too large for the target approm region. ");
+    break;
   }
   printf("\r\n");
 
@@ -135,21 +267,57 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
 
 /**
  * @brief Updates the app firmware via UART. Uses a custom protocol
- *        for the process: A handshake at the start, then send the
- *        metadata, and finally the firmware image in 512-word chunks
- *        the last chunk will be padded with `0xFF`s, to preserve the
- *        reset/erased state of the flash. Once the transfer is complete,
- *        the firmware metadata will be written on the ROM.
+ *        for the process: A handshake at the start (during which the
+ *        target approm region is erased), then the metadata, and finally
+ *        the firmware image in 512-word chunks. The host is responsible
+ *        for padding the last chunk with `0xFF`s to preserve the reset/
+ *        erased state of the flash. Once the transfer is complete, the
+ *        firmware metadata will be written to the metarom region.
  *
- *        TODO: Document the full protocol here, or somewhere else.
+ *        Protocol overview:
  *
- * @returns True on a successful update, false otherwise
+ *        [Handshake]
+ *          Bootloader  ->  Host : FW_UPDATE_REQ
+ *          Host        ->  Boot : FW_UPDATE_ACK + FW_UPDATE_SYNC
+ *          << Bootloader erases the target approm region >>
+ *          Bootloader  ->  Host : FW_UPDATE_ACK
+ *
+ *        [Metadata] (repeated for version, size, and crc)
+ *          Host        ->  Boot : <field_value> (word) + CRC32(<field_value>)
+ *          Bootloader  ->  Host : FW_UPDATE_ACK  (or aborts on mismatch)
+ *
+ *        [Chunk Transfer] (repeated for each chunk)
+ *          Host        ->  Boot : 512 words of image data + CRC32(512 words)
+ *          Bootloader  ->  Host : FW_UPDATE_ACK   (chunk ok, send next)
+ *                              or FW_UPDATE_RSND  (CRC mismatch, resend)
+ *                              or aborts after MAX_CHUNK_RETRIES consecutive
+ *                                 failures on the same chunk
+ *
+ *        [Finalisation]
+ *          Host        ->  Boot : FW_UPDATE_FIN
+ *          Bootloader verifies the full image CRC against the metadata CRC.
+ *          On success, writes metadata to metarom and completes.
+ *          On failure, aborts and erases the target approm region.
+ *
+ * @note The target approm region is selected automatically based on the
+ *       currently running region stored in the firmware metadata:
+ *         - No existing firmware  ->  Region A
+ *         - Currently running A   ->  Region B
+ *         - Currently running B   ->  Region A
+ *
+ * @note The image size is validated against the target region's capacity
+ *       before the transfer begins. Aborts with
+ *       FW_UPDATE_ERR_IMAGE_TOO_LARGE if the image does not fit.
+ *
+ * @returns True on a successful update, false otherwise.
  *
  */
 bool update_firmware_via_uart(void) {
 
+  targetAppromRegion = get_next_approm_region();
+
+  uint32_t *appRomStart = get_approm_start_address(targetAppromRegion);
   uint32_t currChunk = 0;
-  uint32_t *appRomStart = (uint32_t *)&__approm_start__;
   uint32_t *flashCursor = appRomStart;
   uint8_t res1, res2;
   uint32_t image_size = 0;
@@ -192,10 +360,9 @@ bool update_firmware_via_uart(void) {
     currFwInfo.size = flashFw->size;
     currFwInfo.crc = flashFw->crc;
   }
-  /* Step 2: Erase the flash sector of the approm region */
+  /* Step 2: Erase the flash sector of the target approm region */
   flash_unlock();
-  flash_sector_erase(FLASH_APPROM_SECTOR);
-  flash_program_begin(FLASH_WRITE_SIZE_WORD);
+  erase_approm_sectors(targetAppromRegion);
 
   /* Step 3: Send an ACK to the host to initiate data transfer */
   uart_send_byte(FW_UPDATE_ACK);
@@ -219,6 +386,14 @@ bool update_firmware_via_uart(void) {
   crc_valid = !(compute_crc32(&image_size, 1) ^ crc);
   if (!crc_valid) {
     abort_firmware_update(FW_UPDATE_ERR_IMAGE_METADATA_SIZE_MISMATCH);
+    return false;
+  }
+  uint32_t regionSize = (targetAppromRegion == APPROM_REGION_A)
+                            ? (uint32_t)&__appromA_size__
+                            : (uint32_t)&__appromB_size__;
+
+  if (image_size > regionSize) {
+    abort_firmware_update(FW_UPDATE_ERR_IMAGE_TOO_LARGE);
     return false;
   }
 
@@ -301,6 +476,7 @@ bool update_firmware_via_uart(void) {
       .crc = image_crc,
       .size = image_size,
       .version = image_version,
+      .region = targetAppromRegion,
   };
 
   update_firmware_info(&newFwInfo);
@@ -310,11 +486,4 @@ bool update_firmware_via_uart(void) {
 
   /* On successful updates only */
   return true;
-
-  /** TODO: Find a proper timeout value that works with the given baud-rate */
-
-  /** EXTRA-TODO: Try to implement two approm regions to ping-pong
-   *              write the new image to the inactive bank, verify it
-   *              completely, then atomically switch the boot pointer.
-   */
 }
