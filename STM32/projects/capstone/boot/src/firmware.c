@@ -26,14 +26,6 @@ typedef enum FWUpdateAbortReason {
 
 } FWUpdateAbortReason;
 
-typedef struct FirmwareInfo_t {
-
-  uint32_t version;
-  uint32_t size;
-  uint32_t crc;
-
-} FirmwareInfo_t;
-
 static FirmwareInfo_t *fw = NULL;
 
 void test(void) {
@@ -97,6 +89,9 @@ void firmware_update_cleanup(bool updateSuccessful) {
 
 void abort_firmware_update(FWUpdateAbortReason reason) {
 
+  /* Send a signal to the host to signify something went wrong */
+  uart_send_byte(FW_UPDATE_ERR);
+
   /* End flash writes, if begun */
   flash_program_end();
 
@@ -110,13 +105,13 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
     printf("Unxpected handshake packet sequence recieved. ");
     break;
   case FW_UPDATE_ERR_IMAGE_METADATA_VERSION_MISMATCH:
-    printf("Metadata mismatch found for: Image Version. ");
+    printf("Metadata mismatch found for - Image Version. ");
     break;
   case FW_UPDATE_ERR_IMAGE_METADATA_SIZE_MISMATCH:
-    printf("Metadata mismatch found for: Image Size. ");
+    printf("Metadata mismatch found for - Image Size. ");
     break;
   case FW_UPDATE_ERR_IMAGE_METADATA_CRC_MISMATCH:
-    printf("Metadata mismatch found for: Image CRC. ");
+    printf("Metadata mismatch found for - Image CRC. ");
     break;
   case FW_UPDATE_ERR_TOO_MANY_CHUNK_RETRIES:
     printf("Too many retries during chunk transfer. ");
@@ -130,6 +125,9 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
     break;
   }
   printf("\r\n");
+
+  /* Send a signal to the host to say we finished sending the error message */
+  uart_send_byte(FW_UPDATE_FIN);
 
   /* Call the housekeeping function for cleanup */
   firmware_update_cleanup(false);
@@ -145,8 +143,10 @@ void abort_firmware_update(FWUpdateAbortReason reason) {
  *
  *        TODO: Document the full protocol here, or somewhere else.
  *
+ * @returns True on a successful update, false otherwise
+ *
  */
-void update_firmware_via_uart(void) {
+bool update_firmware_via_uart(void) {
 
   uint32_t currChunk = 0;
   uint32_t *appRomStart = (uint32_t *)&__approm_start__;
@@ -177,7 +177,7 @@ void update_firmware_via_uart(void) {
 
   if (!(res1 == FW_UPDATE_ACK && res2 == FW_UPDATE_SYNC)) {
     abort_firmware_update(FW_UPDATE_ERR_UNEXPECTED_HANDSHAKE_PACKET);
-    return;
+    return false;
   }
 
   /* Step 3: Disable UART input echo */
@@ -186,7 +186,7 @@ void update_firmware_via_uart(void) {
   /** Flash preparation **/
   /* Step 0: Get current firmware data, and check if firmware exists */
   FirmwareInfo_t *flashFw = get_firmware_info();
-  if (flashFw->version != 0xFFFFFFFF) {
+  if (flashFw->version != FW_UNDEFINED_VERSION) {
     /* Step 1: If it does exist, keep it in a local variable for later (?) */
     currFwInfo.version = flashFw->version;
     currFwInfo.size = flashFw->size;
@@ -207,7 +207,7 @@ void update_firmware_via_uart(void) {
   crc_valid = !(compute_crc32(&image_version, 1) ^ crc);
   if (!crc_valid) {
     abort_firmware_update(FW_UPDATE_ERR_IMAGE_METADATA_VERSION_MISMATCH);
-    return;
+    return false;
   }
   /* Valid image version received, proceed to next step */
 
@@ -219,7 +219,7 @@ void update_firmware_via_uart(void) {
   crc_valid = !(compute_crc32(&image_size, 1) ^ crc);
   if (!crc_valid) {
     abort_firmware_update(FW_UPDATE_ERR_IMAGE_METADATA_SIZE_MISMATCH);
-    return;
+    return false;
   }
 
   /* Valid image size received, proceed to next step */
@@ -237,7 +237,7 @@ void update_firmware_via_uart(void) {
   crc_valid = !(compute_crc32(&image_crc, 1) ^ crc);
   if (!crc_valid) {
     abort_firmware_update(FW_UPDATE_ERR_IMAGE_METADATA_CRC_MISMATCH);
-    return;
+    return false;
   }
 
   /* Valid image crc received, proceed to next step */
@@ -256,7 +256,7 @@ void update_firmware_via_uart(void) {
       /* Abandon update if max chunk retries reached */
       if (++chunk_retries >= MAX_CHUNK_RETRIES) {
         abort_firmware_update(FW_UPDATE_ERR_TOO_MANY_CHUNK_RETRIES);
-        return;
+        return false;
       }
 
       /* Step 5: If CRC is NOT valid, it will send a RSND request to host */
@@ -285,7 +285,7 @@ void update_firmware_via_uart(void) {
 
   if (res1 != FW_UPDATE_FIN) {
     abort_firmware_update(FW_UPDATE_ERR_UNEXPECTED_END_PACKET);
-    return;
+    return false;
   }
 
   /* Step 10: Compute CRC of image, if it matches initial CRC, write metadata */
@@ -293,7 +293,7 @@ void update_firmware_via_uart(void) {
   if (crc != image_crc) {
     /* Step 11: If it does not match, throw an error, and wipe the sector */
     abort_firmware_update(FW_UPDATE_ERR_FINAL_IMAGE_CRC_MISMATCH);
-    return;
+    return false;
   }
 
   /** Firmware metadata write **/
@@ -307,6 +307,9 @@ void update_firmware_via_uart(void) {
 
   /* Step 3: End the firmware update process */
   firmware_update_cleanup(true);
+
+  /* On successful updates only */
+  return true;
 
   /** TODO: Find a proper timeout value that works with the given baud-rate */
 

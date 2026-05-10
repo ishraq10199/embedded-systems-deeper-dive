@@ -11,7 +11,7 @@
  */
 
 #define SYS_FREQ 16000000
-#define UART_BAUDRATE 4800
+#define UART_BAUDRATE 115200
 
 #define APB1CLK SYS_FREQ
 

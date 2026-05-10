@@ -2,19 +2,19 @@
 """
 Host-side firmware update script.
 Implements the UART update protocol expected by the STM32 bootloader.
+In the first 5 seconds of the STM32's boot sequence, run this script.
+Example firmware given (example.bin) is a simple blink program.
 
 Usage:
-    python3 flash.py <port> <firmware.bin> [--baud BAUD] [--version VERSION]
+    python3 flash.py <port> <example.bin> [--baud BAUD] [--version VERSION]
 
 Example:
-    python3 flash.py /dev/ttyUSB0 firmware.bin --version 2
+    python3 flash.py /dev/ttyUSB0 example.bin --version 2
 """
 
 import argparse
 import struct
 import sys
-import time
-import zlib
 
 import serial
 
@@ -24,6 +24,7 @@ FW_UPDATE_ACK  = 0xAA
 FW_UPDATE_SYNC = 0x55
 FW_UPDATE_RSND = 0x22
 FW_UPDATE_FIN  = 0xFF
+FW_UPDATE_ERR  = 0x66
 
 WORDS_PER_CHUNK = 512
 BYTES_PER_CHUNK = WORDS_PER_CHUNK * 4  # 2048 bytes
@@ -34,14 +35,36 @@ MAX_CHUNK_RETRIES = 10
 # Helpers
 # ---------------------------------------------------------------------------
 
+POLYNOMIAL = 0x04C11DB7  # Must match POLYNOMIAL in crc32.h
+
+
+def crc32_block(crc: int, word: int) -> int:
+    """Matches compute_crc32_block() on the STM32."""
+    crc ^= word
+    for _ in range(32):
+        if crc & 0x80000000:
+            crc = ((crc << 1) ^ POLYNOMIAL) & 0xFFFFFFFF
+        else:
+            crc = (crc << 1) & 0xFFFFFFFF
+    return crc
+
+
 def crc32(data: bytes) -> int:
-    """Must match compute_crc32() in the bootloader."""
-    return zlib.crc32(data) & 0xFFFFFFFF
+    """
+    Matches compute_crc32() on the STM32.
+    Data must be word-aligned (length a multiple of 4).
+    Words are interpreted as little-endian uint32_t, matching the STM32 memory layout.
+    """
+    assert len(data) % 4 == 0, "crc32: data length must be a multiple of 4"
+    crc = 0xFFFFFFFF
+    for i in range(0, len(data), 4):
+        word = struct.unpack_from('<I', data, i)[0]
+        crc = crc32_block(crc, word)
+    return crc
 
 
 def pack_word(value: int) -> bytes:
-    return bytes(list((value).to_bytes(4, byteorder='little')))
-    # return struct.pack('<I', value)
+    return struct.pack('<I', value)
 
 
 def read_byte(ser: serial.Serial) -> int:
@@ -50,11 +73,27 @@ def read_byte(ser: serial.Serial) -> int:
         raise TimeoutError("Timed out waiting for a response from the bootloader")
     return data[0]
 
+def read_byte_until(ser: serial.Serial, timeout: int) -> int:
+    """
+    Similar to read_byte, but with a specified timeout.
+    Will not raise any errors on timeout, but will send a 0xFF byte instead.
+    The timeout here will not clash with the one specified in the serial constructor.
+    """
+    original_timeout = ser.timeout
+    ser.timeout = timeout
+
+    data = ser.read(1)
+    if not data:
+        ser.timeout = original_timeout
+        return 0xFF # on timeout
+    ser.timeout = original_timeout
+
+    return data[0]
 
 def expect_ack(ser: serial.Serial) -> None:
-    print("Expecting ACK")
     byte = read_byte(ser)
     if byte != FW_UPDATE_ACK:
+        read_error_lines(ser)
         raise RuntimeError(
             f"Expected ACK (0x{FW_UPDATE_ACK:02X}), got 0x{byte:02X}"
         )
@@ -63,11 +102,7 @@ def expect_ack(ser: serial.Serial) -> None:
 def send_word_with_crc(ser: serial.Serial, value: int) -> None:
     """Send a single word followed by its CRC, as the bootloader expects."""
     word_bytes = pack_word(value)
-    msg = word_bytes + pack_word(crc32(word_bytes))
-    print(list(msg))
-    ser.write(word_bytes)
-    time.sleep(0.1)
-    ser.write(pack_word(crc32(word_bytes)))
+    ser.write(word_bytes + pack_word(crc32(word_bytes)))
 
 
 def load_firmware(path: str):
@@ -96,6 +131,19 @@ def load_firmware(path: str):
 
     return original_size, fw_data, image_crc
 
+def read_error_lines(ser: serial.Serial):
+    """
+    Read error lines sent from the client when the update process fails
+    Keeps reading until a FIN (0xFF) is sent
+    """
+    print("---Message recieved---")
+    received_byte = read_byte(ser)
+    while (received_byte != FW_UPDATE_FIN):
+        print(received_byte.to_bytes().decode(encoding='ascii'), end='')
+        received_byte = read_byte(ser)
+    print("---End of Message---")
+
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -103,8 +151,8 @@ def load_firmware(path: str):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='STM32 UART firmware updater')
-    parser.add_argument('port',     help='Serial port (e.g. /dev/ttyUSB0 or COM3)')
-    parser.add_argument('firmware', help='Path to firmware binary (.bin)')
+    parser.add_argument('port',      help='Serial port (e.g. /dev/ttyUSB0 or COM3)')
+    parser.add_argument('firmware',  help='Path to firmware binary (.bin)')
     parser.add_argument('--baud',    type=int,   default=115200)
     parser.add_argument('--version', type=int,   default=1,   help='Firmware version (uint32)')
     parser.add_argument('--timeout', type=float, default=5.0, help='Read timeout in seconds')
@@ -121,6 +169,24 @@ def main() -> None:
 
     with serial.Serial(args.port, args.baud, timeout=args.timeout) as ser:
 
+        # --- Check if device is responds to a firmware update notice (SYNC) ---
+        start_ok = True
+        ser.write(bytes([FW_UPDATE_SYNC]))
+        byte = read_byte_until(ser, 5) # Wait 5 seconds for the device to ACK
+        if byte != FW_UPDATE_ACK:
+            start_ok = False
+            print("UART update request not acknowledged, fallback to standard read")
+            while True:
+                print(ser.readline().decode(encoding='ascii'), end='')
+
+        if not start_ok:
+            # We should never come down here, but if we do, we raise an error
+            raise RuntimeError(
+                "Aborting standard read, update never started!"
+            )
+
+        # If the device has sent an ACK to the update notice, we proceed
+
         # --- Handshake ---
         print("\nWaiting for bootloader REQ...")
         byte = read_byte(ser)
@@ -133,20 +199,21 @@ def main() -> None:
         expect_ack(ser)
         print("Handshake OK")
 
-        time.sleep(0.1)
-
         # --- Metadata ---
         print("Sending metadata...")
         send_word_with_crc(ser, image_version)
+        print("Expecting ACK for version...")
         expect_ack(ser)
 
-        time.sleep(0.1)
-
         send_word_with_crc(ser, image_size)
+        print("Expecting ACK for size...")
         expect_ack(ser)
 
         send_word_with_crc(ser, image_crc)
+        print("Expecting ACK for crc...")
         expect_ack(ser)
+
+        print("Metadata sent!")
 
         # --- Chunk transfer ---
         print(f"Transferring {num_chunks} chunk(s)...")
@@ -169,13 +236,13 @@ def main() -> None:
                         raise RuntimeError("Too many chunk retries — aborting")
                 else:
                     raise RuntimeError(f"Unexpected response 0x{response:02X}")
-                time.sleep(0.1)
 
         # --- Done ---
         ser.write(bytes([FW_UPDATE_FIN]))
         print("\nFirmware transfer complete.")
 
-
+# Used to debug:
+# python uart_firmware_update.py /dev/ttyUSB0 ./example.bin --timeout 10
 if __name__ == '__main__':
     try:
         main()
