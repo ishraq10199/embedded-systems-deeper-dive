@@ -111,6 +111,7 @@ $RECYCLE.BIN/
 # VS Code (if used alongside CubeIDE)
 **/.vscode/
 
+
 # JetBrains / CLion
 **/.idea/
 **/*.iml
@@ -130,3 +131,5 @@ $RECYCLE.BIN/
 
 STM32CubeF4/
 **/*.code-workspace
+**/.cache/
+**/Archive.zip

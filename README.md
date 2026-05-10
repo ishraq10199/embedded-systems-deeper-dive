@@ -2,7 +2,7 @@
 
 This repo will be used to track my deep-dive learning progress with embedded systems. Although I have some experience with it, I never quite formalized my learning through first principles. Hopefully I can cover stuff I was always interested in, like linkers, bootloaders, baremetal code, RTOS, etc. and track my journey throughout.
 
-## 🧇 `:::::::: STM32 ::::::::`
+## 🧇 `:::: STM32 ::::`
 
 As a starter, I will be using an STM32 board, or more precisely, [this one](https://store.roboticsbd.com/development-boards/1133-xnucleo-f411re-improved-stm32-nucleo-board-robotics-bangladesh.html), as it was the one I had in stock when I was starting. The board is assumed to be deprecated, as looking up its datasheet returns a `404` on the manufacturer's site.
 
@@ -122,9 +122,46 @@ I was able to gain much deeper understanding of the core C build system, how the
 
 ### ✨ `:::: Capstone ::::`
 
-> _Work in progress!_
+This is the culmination project, pulling together concepts from both the baremetal and tooling sections into a complete, from-scratch bootloader for the STM32F411RE.
 
-### Notes
+#### 🗺️ Overview
+
+The flash is partitioned into a bootrom, two application regions (appromA and appromB), and a small metarom sector for storing firmware metadata. A dedicated block at the start of SRAM is carved out as a `shared` region that persists across resets.
+
+On every power-on, the bootloader waits up to 5 seconds on UART for an update notice from the host. If one arrives, it kicks off a firmware update. Otherwise, it checks the metarom for valid firmware and jumps to it.
+
+Updates always target the inactive partition, so a valid image is never touched mid-transfer. Once a transfer completes, the bootloader validates the full image and writes the new metadata to the metarom before handing off execution to the app.
+
+#### 🔩 Implementation Details
+
+- **🗃️ Memory map:** The flash is split into a 16 kB bootrom (sector 0), appromA at 112 kB (sectors 1-4), appromB at 128 kB (sector 5), and a 512-byte metarom in sector 7. The `shared` SRAM region is 4 kB and tracks a boot counter across resets. All region starts and sizes are exported as linker symbols and accessible from C via `memory_map.h`.
+
+- **📡 Firmware update protocol:** The bootloader and host do a short handshake, during which the target partition is erased. The host then sends the image metadata word-by-word (version, size, CRC), with each field individually CRC32-protected. The image follows in 512-word chunks, each with a trailing CRC word. The bootloader can request retransmission of any individual chunk on a CRC mismatch, and validates the full image CRC before committing the firmware metadata to the metarom.
+
+- **🔄 A/B partition scheme:** The active region is tracked in the metarom. If no firmware exists, updates go to appromA. If appromA is active, updates go to appromB, and vice versa.
+
+- **🖥️ Host script:** `scripts/uart_firmware_update.py` implements the host side of the protocol. It loads the firmware binary, pads it to a chunk boundary with `0xFF`s, computes matching CRC32s, and drops into a serial monitor after a successful transfer.
+
+<br> 
+<details>
+
+<summary>Module Details (👈 toggle expand)</summary>
+
+<br>
+
+| Module                                                                                       | Description                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`boot/src/bootloader.c`](STM32/projects/capstone/boot/src/bootloader.c)                     | Entry point. Listens for an update notice from the host on startup, with a 5-second timeout. On a valid notice, triggers the UART update flow. Otherwise, reads the metarom for valid firmware and jumps to it. |
+| [`boot/src/firmware.c`](STM32/projects/capstone/boot/src/firmware.c)                         | Core of the bootloader. Implements the full UART firmware update protocol, approm erase and write routines, metarom read/write, and the A/B region selection logic.                                             |
+| [`boot/inc/firmware.h`](STM32/projects/capstone/boot/inc/firmware.h)                         | Defines the `FirmwareInfo_t` struct, `AppromRegion` enum, protocol byte constants (`ACK`, `SYNC`, `REQ`, `RSND`, `FIN`, `ERR`), and the flash sector layout for both app regions.                               |
+| [`common/`](STM32/projects/capstone/common)                                                  | Shared driver library. Covers UART (TX, RX, echo control), flash (sector erase, word write, lock/unlock), CRC32, SysTick, and the newlib `syscalls.c` stubs.                                                    |
+| [`shared/`](STM32/projects/capstone/shared)                                                  | Defines the `SharedData_t` struct placed in the 4 kB SRAM region that survives resets, used for tracking a boot counter.                                                                                        |
+| [`memory_map.ld`](STM32/projects/capstone/memory_map.ld)                                     | Master linker script. Lays out all memory regions (`bootrom`, `appromA`, `appromB`, `metarom`, `shared`, `ram`) and exports region starts and sizes as linker symbols accessible from C.                        |
+| [`scripts/uart_firmware_update.py`](STM32/projects/capstone/scripts/uart_firmware_update.py) | Host-side update tool. Implements the full protocol, loads and pads the firmware binary to chunk boundaries, computes matching CRC32s, and switches to a serial monitor on completion.                          |
+
+</details>
+
+### 📝 Notes
 
 <details>
 
