@@ -173,6 +173,11 @@ FirmwareInfo_t *get_firmware_info(void) {
 
 /**** --- Firmware Write Functions --- ****/
 
+void erase_metadata_sector(void) {
+  wait_for_pending_flash_operations();
+  flash_sector_erase(METAROM_SECTOR);
+}
+
 void erase_approm_sectors(AppromRegion region) {
 
   wait_for_pending_flash_operations();
@@ -369,6 +374,8 @@ bool update_firmware_via_uart(void) {
   if (DEBUG_ERASE_BOTH_APPROM_REGIONS) {
     erase_approm_sectors(APPROM_REGION_A);
     erase_approm_sectors(APPROM_REGION_B);
+    erase_metadata_sector();
+    
   } else {
     erase_approm_sectors(targetAppromRegion);
   }
