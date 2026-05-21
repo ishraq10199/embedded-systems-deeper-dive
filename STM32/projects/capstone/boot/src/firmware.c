@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define DEBUG_ERASE_BOTH_APPROM_REGIONS (0U)
+
 #define MAX_CHUNK_RETRIES (10U)
 #define WORDS_PER_CHUNK_WITHOUT_CRC (512U)
 #define BYTES_PER_CHUNK_WITHOUT_CRC                                            \
@@ -362,7 +364,14 @@ bool update_firmware_via_uart(void) {
   }
   /* Step 2: Erase the flash sector of the target approm region */
   flash_unlock();
-  erase_approm_sectors(targetAppromRegion);
+  
+  /* We can set this define to 1 so that all approm regions are wiped before flashing */
+  if (DEBUG_ERASE_BOTH_APPROM_REGIONS) {
+    erase_approm_sectors(APPROM_REGION_A);
+    erase_approm_sectors(APPROM_REGION_B);
+  } else {
+    erase_approm_sectors(targetAppromRegion);
+  }
 
   /* Step 3: Send an ACK to the host to initiate data transfer */
   uart_send_byte(FW_UPDATE_ACK);

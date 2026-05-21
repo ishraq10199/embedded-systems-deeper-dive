@@ -21,6 +21,7 @@ void systick_init(void) {
 void systick_deinit(void) {
   /* Disable systick */
   SysTick->CTRL = 0;
+  SysTick->VAL = 0;
   timer_initialized = false;
 }
 

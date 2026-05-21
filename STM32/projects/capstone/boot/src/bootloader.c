@@ -33,8 +33,60 @@ void jump_to_app_firmware(void) {
   /* First 32-bit word contains the stack pointer init address */
   uint32_t app_sp = app_code[0];
 
-  /* Second 32-bit word contains the address to the Reset Handler */
-  uint32_t app_start = app_code[1];
+  /* Some logic is needed to get the ACTUAL jump address of the app */
+  /**
+   ** Here, X is where the contiguous app regions start. This space [ ... ] represents both regions.
+   ** Y is the start address of our current app firmware in flash, stored as a value in `app_code`
+   ** Z is the reset handler's actual location, stored in `app_code[1]`
+   ** B is where region B starts
+   ** 
+   ** --- WHEN FIRMWARE IS FLASHED TO REGION A ---
+   ** 
+   **          [      |     |      |                                    ]
+   **          X      Y     Z      B
+   ** 
+   ** The problem arises when firmware is in region B. Now, the X is fixed, as its a hard-coded address.
+   ** i.e. X is always where the contiguous approm regions start, the beginning of `appromA_start`.
+   ** Y is also where it should be, and its value is an address in RAM
+   ** The problem is Z. It now points to a reset handler "as if the firmware is in region A" (Z*)
+   ** What it should be: An address to the reset handler "as if the firmware is in region B" (Z)
+   ** 
+   ** --- WHEN FIRMWARE IS FLASHED TO REGION B ---
+   **
+   ** 
+   **          [                   |      |     |                       ]
+   **          X                   B      Y     Z
+   **                       |
+   **                       Z*
+   **                       ^
+   **      (where it thinks the reset handler is) 
+   **
+   ** So what we do is get the offset between the start of the contiguous approm regions (X) and Z*.
+   ** We make sure to not take the thumb-bit for Z*, as it will interfere with offset calculation.
+   ** So, offset difference = (Z* without thumb-bit) - X
+   ** Now we add this offset with B, i.e. corrected = B + offset_difference
+   ** Then we put the thumb-bit back into the corrected address, i.e. app_start = corrected | thumb_bit
+   **
+   */
+
+  /* We need to temporarily get rid of the thumb-bit to calculate the offset */
+  /* And then add the thumb-bit in, when the offset is corrected */
+
+  /* Get the actual base address of all (contiguous) approm regions */
+  uint32_t full_approm_base_addr = (uint32_t )&__appromA_start__;
+  uint32_t current_app_region_base_addr = (uint32_t)app_code;
+
+  /* Store the thumb bit for later */
+  uint8_t app_start_thumb_bit = app_code[1] & 1U;
+
+  /* Temporarily discard the thumb bit and get the offset difference */
+  uint32_t app_start_offset = (app_code[1] & ~(1U)) - full_approm_base_addr;
+
+  /* Calculate the correct app start address */
+  uint32_t corrected_app_start = (current_app_region_base_addr + app_start_offset) | app_start_thumb_bit;
+  
+  /* Second 32-bit word contains the address to the corrected Reset Handler address */
+  uint32_t app_start = corrected_app_start;
 
   // Disable all interrupts before jumping
   __disable_irq();
@@ -103,10 +155,13 @@ int main(void) {
       printf("[BOOTLOADER] Approm found. Details:\r\n");
       print_firmware_info();
       jump_to_app_firmware();
-    }
 
-    printf("[BOOTLOADER] Valid firmware not found.\r\n");
-    printf("[BOOTLOADER] Sitting idle until next reset.\r\n");
+    } else {
+      /* Separete else block to not come here if the jump fails */
+      printf("[BOOTLOADER] Valid firmware not found.\r\n");
+      printf("[BOOTLOADER] Sitting idle until next reset.\r\n");
+    }
+    
   }
 
   /* We never come here */
